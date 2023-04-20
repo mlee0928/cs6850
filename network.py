@@ -45,19 +45,15 @@ for edge in network:
   target_vid = eid_to_vid[target_eid]
   output[source_vid]["target_neighbors"].append(target_vid)
   output[target_vid]["source_neighbors"].append(source_vid)
-  
+ 
 for video_info in videos_info:
   vid = video_info["id"]
   output[vid]["average_daily_view"] = video_info["insights"]["totalView"] / len(video_info["insights"]["dailyView"])
-  if video_info["insights"].get("totalView") == None or video_info["insights"].get("dailyView") == None:
-    print(vid)
-  else:
-    output[vid]["average_daily_view"] = video_info["insights"]["totalView"] / len(video_info["insights"]["dailyView"])
     
   if video_info["insights"].get("totalShare") == None or video_info["insights"].get("dailyShare") == None:
-    print(vid)
+    del output[vid]
   else:
     output[vid]["average_daily_share"] = video_info["insights"]["totalShare"] / len(video_info["insights"]["dailyShare"])
-  
+
 with open("output.json", "w") as output_file:
   output_file.write(json.dumps(output, indent=4))
