@@ -3,7 +3,7 @@
 #
 #
 # # Open the file in binary mode
-# with open('dataverse_files/engagement_map.p', 'rb') as f:
+# with open('data/engagement_map.p', 'rb') as f:
 #     # Load the pickled data
 #     data = pickle.load(f)
 #
@@ -19,14 +19,14 @@
 import json
 import pickle
 
-with open('dataverse_files/engagement_map.p', 'rb') as f:
+with open('data/engagement_map.p', 'rb') as f:
     engagement_map = pickle.load(f)
 
 # total watch time, total view time, and duration --> average watch percentage
 # output: dictionary with id, duration, and average watch percentage
 output = []
 filename = "vevo_en_videos_60k"
-with open(f'dataverse_files/{filename}.json', 'r', encoding="utf-8") as f:
+with open(f'data/{filename}.json', 'r', encoding="utf-8") as f:
     data = json.load(f)
 
     for dictionary in data:
@@ -44,5 +44,5 @@ with open(f'dataverse_files/{filename}.json', 'r', encoding="utf-8") as f:
 
 
 
-with open(f'dataverse_files/watch_per_{filename}.json', 'w') as f:
+with open(f'data/watch_per_{filename}.json', 'w') as f:
     json.dump(output, f)
