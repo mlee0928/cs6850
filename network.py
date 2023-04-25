@@ -17,7 +17,8 @@ format:
       "target neighbors" : "" [] #video id,
       "source neighbors" : "" [] #video id,
       "averageDailyView" : "",
-      "averageDailyShare" : ""
+      "averageDailyShare" : "",
+      "averageWatchPercentage" : ""
     }
   }
 '''
