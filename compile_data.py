@@ -17,6 +17,10 @@
 # print(total_seconds)
 
 import json
+import pickle
+
+with open('dataverse_files/engagement_map.p', 'rb') as f:
+    engagement_map = pickle.load(f)
 
 # total watch time, total view time, and duration --> average watch percentage
 # output: dictionary with id, duration, and average watch percentage
@@ -37,6 +41,8 @@ with open(f'dataverse_files/{filename}.json', 'r', encoding="utf-8") as f:
         new_d = {"id": vid_id, "duration": duration, "average watch percentage": aver_watch_percentage}
 
         output.append(new_d)
+
+
 
 with open(f'dataverse_files/watch_per_{filename}.json', 'w') as f:
     json.dump(output, f)

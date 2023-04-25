@@ -1,6 +1,7 @@
 .idea/
 *.zip
 dataverse_files/
+key.txt
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
