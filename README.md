@@ -1,6 +1,7 @@
 # cs6850
 `vevo_en_videos_60k.json` file format:
-```{"id": "uJz3sRJ1fTQ",
+```
+ {"id": "uJz3sRJ1fTQ",
  "snippet": {"publishedAt": "2018-07-12T23:01:00.000Z",
              "channelId": "UCKonA-DOxJbL0VHUDlc3vsA",
              "title": "Bury Tomorrow - Adrenaline (Audio)",
@@ -26,4 +27,34 @@
               "endDate": "2018-11-02"
               },
  "topics": ["Music", "Rock_music"]
- }```
+ }
+ ```
+
+Units:
+- duration - seconds
+- average watch percentage - percent
+
+Compile Data is the full set of data we have after preprocessing
+```
+{"vid_id": 
+    {"eid": 1, 
+    "neighbors": ["d7cVLE4SaN0", "eCGV26aj-mM", "EnIR91t4qgY", "RAC5Rv4cOhE"], 
+    "aver_daily_share": 332.3450508788159, 
+    "duration": 242.0, 
+    "total_view": 80160391, 
+    "total_watch_time": 3131.3522672762774, 
+    "aver_watch_time": 2.896718101088138, 
+    "aver_watch_percentage": 1.1969909508628669, 
+    "relative_engagement": 1, 
+    "neighbor_engagement": [1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 
+                            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+                            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+                            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+                            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+                            0, 0, 0, 0, 0, 0]}, 
+ "vid_id2":
+    {
+    }
+}
+
+```
