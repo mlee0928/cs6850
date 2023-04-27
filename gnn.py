@@ -14,40 +14,36 @@ class GCN(torch.nn.Module):
         x = self.conv2(x, edge_index)
         return F.log_softmax(x, dim=1)
 
-# Define graph data
-edge_index = torch.tensor([[0, 1, 2, 3, 4], [1, 2, 3, 4, 0]], dtype=torch.long)  # add extra edges
+edge_index = torch.tensor([[0, 1, 2, 3, 4], [1, 2, 3, 4, 0]], dtype=torch.long)
 x = torch.tensor([[1.0, 2.0],
                   [2.0, 3.0],
                   [3.0, 4.0],
                   [4.0, 5.0],
                   [5.0, 6.0],
-                  [0.0, 0.0],  # add dummy node
-                  [0.0, 0.0]], dtype=torch.float)  # add dummy node
+                  [0.0, 0.0],
+                  [0.0, 0.0]], dtype=torch.float)
 
-y = torch.tensor([0, 1, 1, 0, 1, 0, 0], dtype=torch.long)  # add labels for dummy nodes
+y = torch.tensor([0, 1, 1, 0, 1, 0, 0], dtype=torch.long)
 
-# Instantiate model and optimizer
 model = GCN(in_channels=2, hidden_channels=16, out_channels=5)
 optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
 
-# Train loop
 model.train()
-for epoch in range(200):
+for epoch in range(50):
     optimizer.zero_grad()
     out = model(x, edge_index)
-    loss = F.nll_loss(out[:5], y[:5])  # only compute loss for real nodes
+    loss = F.nll_loss(out[:5], y[:5])
     loss.backward()
     optimizer.step()
     print('Epoch: {:03d}, Loss: {:.4f}'.format(epoch, loss.item()))
 
-# Evaluate on new data
 model.eval()
 correct = 0
 total = 0
 x_test = torch.tensor([[0.5, 0.6], [1.0, 1.1], [2.0, 2.1], [0.0, 0.0], [0.0, 0.0]], dtype=torch.float)
 y_test = torch.tensor([1, 1, 0, 1, 0])
 out_test = model(x_test, edge_index)
-pred_test = out_test[:5].argmax(dim=1)  # only predict for real nodes
+pred_test = out_test[:5].argmax(dim=1)
 correct += pred_test.eq(y_test).sum().item()
 total += y.size(0)
 print('Predictions: {}'.format(pred_test.detach().numpy()))
