@@ -42,7 +42,13 @@ for epoch in range(200):
 
 # Evaluate on new data
 model.eval()
+correct = 0
+total = 0
 x_test = torch.tensor([[0.5, 0.6], [1.0, 1.1], [2.0, 2.1], [0.0, 0.0], [0.0, 0.0]], dtype=torch.float)
+y_test = torch.tensor([1, 1, 0, 1, 0])
 out_test = model(x_test, edge_index)
 pred_test = out_test[:5].argmax(dim=1)  # only predict for real nodes
+correct += pred_test.eq(y_test).sum().item()
+total += y.size(0)
 print('Predictions: {}'.format(pred_test.detach().numpy()))
+print(f"Accuracy: {correct / total}")
