@@ -39,6 +39,8 @@ Compile Data is the full set of data we have after preprocessing
 {"vid_id": 
     {"eid": 1, 
     "neighbors": ["d7cVLE4SaN0", "eCGV26aj-mM", "EnIR91t4qgY", "RAC5Rv4cOhE"], 
+    "source_neighbors": ["d7cVLE4SaN0", "eCGV26aj-mM"],
+    "target_neighbors": ["EnIR91t4qgY", "RAC5Rv4cOhE"],
     "aver_daily_share": 332.3450508788159, 
     "duration": 242.0, 
     "total_view": 80160391, 
@@ -46,12 +48,14 @@ Compile Data is the full set of data we have after preprocessing
     "aver_watch_time": 2.896718101088138, 
     "aver_watch_percentage": 1.1969909508628669, 
     "relative_engagement": 1, 
+    "aver_daily_view": 74153.92321924145,
     "neighbor_engagement": [1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 
                             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
                             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
                             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
                             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
-                            0, 0, 0, 0, 0, 0]}, 
+                            0, 0, 0, 0, 0, 0]
+    }, 
  "vid_id2":
     {
     }

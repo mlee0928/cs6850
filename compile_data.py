@@ -111,6 +111,7 @@ for vid_id in output_data:
             if neigh in output_data:
                 neighbors.append(neigh)
     max_neighbors = max(max_neighbors, len(neighbors))
+    aver_daily_view = vid_dict["average_daily_view"]
     aver_daily_share = vid_dict["average_daily_share"]
     duration = all_data_dict['contentDetails']['duration']
     duration = isodate.parse_duration(duration)
@@ -126,7 +127,9 @@ for vid_id in output_data:
     compile_data[vid_id] = {"eid": eid, "neighbors": neighbors, "aver_daily_share": aver_daily_share,
                             "duration": duration, "total_view": total_view, "total_watch_time": total_watch_time,
                             "aver_watch_time": aver_watch_time, "aver_watch_percentage": aver_watch_percentage,
-                            "relative_engagement": relative_engagement}
+                            "relative_engagement": relative_engagement, "aver_daily_view": aver_daily_view,
+                            "source_neighbors":  vid_dict["source_neighbors"],
+                            "target_neighbors":  vid_dict["target_neighbors"]}
 
 number_empty = 0
 for vid_id in compile_data:
