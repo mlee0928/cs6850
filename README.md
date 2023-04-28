@@ -49,12 +49,13 @@ Compile Data is the full set of data we have after preprocessing
     "aver_watch_percentage": 1.1969909508628669, 
     "relative_engagement": 1, 
     "aver_daily_view": 74153.92321924145,
+    # this is in the order of "neighbors"
     "neighbor_engagement": [1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 
                             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
                             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
                             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
                             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
-                            0, 0, 0, 0, 0, 0]
+                            0, 0, 0, 0, 0, 0] 
     }, 
  "vid_id2":
     {
