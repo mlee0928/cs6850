@@ -3,21 +3,23 @@ import torch.nn.functional as F
 from torch_geometric.nn import GCNConv, global_mean_pool
 import json
 from collections import defaultdict
-from deepsnap.graph import Graph
-
-from sklearn.model_selection import train_test_split
-from torch_geometric.transforms import RandomLinkSplit, RandomNodeSplit
-from torch_geometric.utils import subgraph
-from deepsnap.dataset import GraphDataset
-import networkx as nx
+import matplotlib.pyplot as plt
+# from deepsnap.graph import Graph
+#
+# from sklearn.model_selection import train_test_split
+# from torch_geometric.transforms import RandomLinkSplit, RandomNodeSplit
+# from torch_geometric.utils import subgraph
+# from deepsnap.dataset import GraphDataset
+# import networkx as nx
 import random
 
 
-import copy
+# import copy
+#
+# import pdb
+# from torch_geometric.data import Data
 
-import pdb
-from torch_geometric.data import Data
-
+random.seed(42)
 
 class GCN(torch.nn.Module):
     def __init__(self, in_channels, hidden_channels, out_channels):
@@ -40,10 +42,11 @@ class GCN(torch.nn.Module):
 
 def loss_fn(gt, pred, output1_w = 0.5, output2_w = 0.5):
     count = gt.shape[0]
+    print("gt shape:", count)
     losses = 0
     for i in range(count):
-        losses += (abs(gt[i][0] - pred[i][0]) * output1_w) ** 2
-        losses += (abs(gt[i][1] - pred[i][1]) * output2_w) ** 2
+        losses += ((gt[i][0] - pred[i][0]) * output1_w) ** 2
+        losses += ((gt[i][1] - pred[i][1]) * output2_w) ** 2
     losses /= count
     return losses
 
@@ -52,7 +55,6 @@ if torch.cuda:
 else:
     device = 'cpu'
 
-device = 'cpu'
 print(f"device: {device}")
 
 with open('data/compile_data.json', 'r', encoding="utf-8") as f:
@@ -272,7 +274,7 @@ def get_graph2():
             dict2[node] = True
 
     edge_key_mapping1 = dict(zip(dict1.keys(), range(len(dict1))))
-    edge_key_mapping2 = dict(zip(dict1.keys(), range(len(dict1))))
+    edge_key_mapping2 = dict(zip(dict2.keys(), range(len(dict2))))
 
     x_test = []
     y_test = []
@@ -331,14 +333,85 @@ def get_graph2():
 
     return x_train, x_test, y_train, y_test, edge_train, edge_test
 
+def get_graph3():
+    # TODO: get random nodes, run dfs but with cut off, since the test set has less nodes, it probably won't have as big of a graph
+    edge_key_mapping = dict(zip(compile_data.keys(), range(len(compile_data))))
+    random_keys = random.sample(list(edge_key_mapping), int(len(edge_key_mapping) * 0.8))
 
+    # Split the dictionary into two based on the random keys
+    dict1 = {k: edge_key_mapping[k] for k in random_keys}
+    dict2 = {k: edge_key_mapping[k] for k in edge_key_mapping if k not in random_keys}
+
+    print(f"total dict: {len(compile_data)}, dict1 size: {len(dict1)}, dict2 size: {len(dict2)}")
+
+    edge_key_mapping1 = dict(zip(dict1.keys(), range(len(dict1))))
+    edge_key_mapping2 = dict(zip(dict2.keys(), range(len(dict2))))
+
+    x_test = []
+    y_test = []
+    edge_test = [[], []]
+    edge_key_mapping = edge_key_mapping2
+    for vid_id in dict2:
+        source_says_neigh = compile_data[vid_id]["source_neighbors"]
+        target_says_neigh = compile_data[vid_id]["target_neighbors"]
+        for source in source_says_neigh:
+            if source in edge_key_mapping2:
+                edge_test[0].append(edge_key_mapping[source])
+                edge_test[1].append(edge_key_mapping[vid_id])
+        for dest in target_says_neigh:
+            if dest in edge_key_mapping2:
+                edge_test[1].append(edge_key_mapping[vid_id])
+                edge_test[0].append(edge_key_mapping[dest])
+
+        lst = []
+        lst.append(compile_data[vid_id]["aver_daily_view"])
+        lst.append(compile_data[vid_id]["aver_daily_share"])
+        lst.append(compile_data[vid_id]["aver_watch_time"])
+        lst.extend(compile_data[vid_id]["neighbor_engagement"])
+        x_test.append(lst)
+
+        y_test.append([compile_data[vid_id]["aver_watch_percentage"], compile_data[vid_id]["relative_engagement"]])
+
+    x_train = []
+    y_train = []
+    edge_train = [[], []]
+    edge_key_mapping = edge_key_mapping1
+    for vid_id in dict1:
+        source_says_neigh = compile_data[vid_id]["source_neighbors"]
+        target_says_neigh = compile_data[vid_id]["target_neighbors"]
+        for source in source_says_neigh:
+            if source in edge_key_mapping1:
+                edge_train[0].append(edge_key_mapping[source])
+                edge_train[1].append(edge_key_mapping[vid_id])
+        for dest in target_says_neigh:
+            if dest in edge_key_mapping1:
+                edge_train[1].append(edge_key_mapping[vid_id])
+                edge_train[0].append(edge_key_mapping[dest])
+
+        lst = []
+        lst.append(compile_data[vid_id]["aver_daily_view"])
+        lst.append(compile_data[vid_id]["aver_daily_share"])
+        lst.append(compile_data[vid_id]["aver_watch_time"])
+        lst.extend(compile_data[vid_id]["neighbor_engagement"])
+        x_train.append(lst)
+
+        y_train.append([compile_data[vid_id]["aver_watch_percentage"], compile_data[vid_id]["relative_engagement"]])
+
+    x_train = torch.tensor(x_train, dtype=torch.float).to(device)
+    x_test = torch.tensor(x_test, dtype=torch.float).to(device)
+    y_train = torch.tensor(y_train, dtype=torch.float).to(device)
+    y_test = torch.tensor(y_test, dtype=torch.float).to(device)
+    edge_train = torch.tensor(edge_train, dtype=torch.long).to(device)
+    edge_test = torch.tensor(edge_test, dtype=torch.long).to(device)
+
+    return x_train, x_test, y_train, y_test, edge_train, edge_test
 
 
 # x_train, y_train, edge_index_train,\
 #     x_val, y_val, edge_index_val, \
 #     x_test, y_test, edge_index_test = get_graph()
 
-x_train, x_test, y_train, y_test, edge_train, edge_test = get_graph2()
+x_train, x_test, y_train, y_test, edge_train, edge_test = get_graph3()
 # x_train, x_test, y_train, y_test, edge_train, edge_test = get_graph()
 
 # print("x_train shape[1]:", x_train.shape[1])
@@ -347,15 +420,25 @@ model = GCN(in_channels=x_train.shape[1], hidden_channels=16, out_channels=2).to
 optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
 
 model.train()
-for epoch in range(5):
+loss_lst = []
+# TODO: add validation data
+for epoch in range(100):
     optimizer.zero_grad()
     print(x_train.shape, edge_train.shape)
     out = model(x_train, edge_train)
     loss = loss_fn(out, y_train)
+    loss_lst.append(loss.cpu().data.numpy())
     # loss = F.nll_loss(out.view(-1, out.shape[0]).flatten(), y_train.view(-1, y_train.shape[0]).flatten())
     loss.backward()
     optimizer.step()
     print('Epoch: {:03d}, Loss: {:.4f}'.format(epoch, loss.item()))
+
+print(loss_lst)
+plt.plot(loss_lst)
+plt.xlabel('Epoch')
+plt.ylabel('Loss')
+plt.title('Training Loss')
+plt.savefig("gnn_loss_plt.png")
 
 model.eval()
 correct = 0
