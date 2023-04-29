@@ -460,14 +460,15 @@ model = GCN(in_channels=x_train.shape[1], hidden_channels=16, out_channels=2).to
 optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
 
 model.train()
-loss_lst = []
+train_loss = []
+val_loss = []
 # TODO: add validation data
-for epoch in range(3):
+for epoch in range(100):
     optimizer.zero_grad()
     print(x_train.shape, edge_train.shape)
     out = model(x_train, edge_train)
     loss = loss_fn(out, y_train)
-    loss_lst.append(loss.cpu().data.numpy())
+    train_loss.append(loss.cpu().data.numpy())
     # loss = F.nll_loss(out.view(-1, out.shape[0]).flatten(), y_train.view(-1, y_train.shape[0]).flatten())
     loss.backward()
     optimizer.step()
@@ -476,12 +477,14 @@ for epoch in range(3):
     with torch.no_grad():
         out = model(x_val, edge_val)
         loss = loss_fn(y_val, out)
+        val_loss.append(loss.item())
         print('Epoch: {:03d}, Loss: {:.4f}'.format(epoch, loss.item()))
 
-print(loss_lst)
-plt.plot(loss_lst)
+plt.plot(train_loss, color='red', label="train loss")
+plt.plot(val_loss, color='blue', label="val loss")
 plt.xlabel('Epoch')
 plt.ylabel('Loss')
+plt.legend()
 plt.title('Training Loss')
 plt.savefig("gnn_loss_plt.png")
 
