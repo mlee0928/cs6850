@@ -2,8 +2,22 @@ import torch
 import torch.nn.functional as F
 from torch_geometric.nn import GCNConv, global_mean_pool
 import json
+from collections import defaultdict
+from deepsnap.graph import Graph
+
 from sklearn.model_selection import train_test_split
+from torch_geometric.transforms import RandomLinkSplit, RandomNodeSplit
+from torch_geometric.utils import subgraph
+from deepsnap.dataset import GraphDataset
+import networkx as nx
+import random
+
+
+import copy
+
 import pdb
+from torch_geometric.data import Data
+
 
 class GCN(torch.nn.Module):
     def __init__(self, in_channels, hidden_channels, out_channels):
@@ -28,8 +42,8 @@ def loss_fn(gt, pred, output1_w = 0.5, output2_w = 0.5):
     count = gt.shape[0]
     losses = 0
     for i in range(count):
-        losses += abs(gt[i][0] - pred[i][0]) * output1_w
-        losses += abs(gt[i][1] - pred[i][1]) * output2_w
+        losses += (abs(gt[i][0] - pred[i][0]) * output1_w) ** 2
+        losses += (abs(gt[i][1] - pred[i][1]) * output2_w) ** 2
     losses /= count
     return losses
 
@@ -37,6 +51,7 @@ if torch.cuda:
     device = 'cuda'
 else:
     device = 'cpu'
+
 device = 'cpu'
 print(f"device: {device}")
 
@@ -46,6 +61,13 @@ with open('data/compile_data.json', 'r', encoding="utf-8") as f:
 
 edge_key_mapping = dict(zip(compile_data.keys(), range(len(compile_data))))
 
+random_keys = random.sample(list(edge_key_mapping), int(len(edge_key_mapping) * 0.8))
+
+# Split the dictionary into two based on the random keys
+dict1 = {k: edge_key_mapping[k] for k in random_keys}
+dict2 = {k: edge_key_mapping[k] for k in edge_key_mapping if k not in random_keys}
+
+# TODO: redo mapping for indices
 
 
 """
@@ -56,78 +78,279 @@ Inputs:  1. aver_daily_view
 Outputs: 1. aver_watch_percentage
          2. relative_engagement
 """
-# TODO: construct node values with options (for both x and y)
 def get_graph(input1=True, input2=True, input3=True, input4=True, output1=True, output2=True):
     if input1 + input2 + input3 + input4 == 0 or output1 + output2 == 0:
         raise Exception("Error: Either no choice of input (x options) or output (y options)")
 
-    edge_source = []
-    edge_dest = []
-    x = []
-    y = []
-    for vid_id in compile_data.keys():
+    # G = nx.Graph()
+
+
+    # edge_source = []
+    # edge_dest = []
+    # x = []
+    # y = []
+    # x_y = []
+    # for vid_id in compile_data.keys():
+    #     lst = []
+    #     lst.append(compile_data[vid_id]["aver_daily_view"])
+    #     lst.append(compile_data[vid_id]["aver_daily_share"])
+    #     lst.append(compile_data[vid_id]["aver_watch_time"])
+    #     lst.extend(compile_data[vid_id]["neighbor_engagement"])
+    #     lst.extend([compile_data[vid_id]["aver_watch_percentage"], compile_data[vid_id]["relative_engagement"]])
+    #     G.add_node(edge_key_mapping[vid_id], node_feature=torch.tensor(lst, dtype=float))
+    x_train = []
+    y_train = []
+    edge_train = [[], []]
+    dict1_nodes = defaultdict(bool)
+    for vid_id in dict1:
+        dict1_nodes[vid_id] = True
+        for node in compile_data[vid_id]["neighbors"]:
+            dict1_nodes[node] = True
+    for vid_id in dict1_nodes: #compile_data.keys():
+
         source_says_neigh = compile_data[vid_id]["source_neighbors"]
         target_says_neigh = compile_data[vid_id]["target_neighbors"]
         for source in source_says_neigh:
-            edge_source.append(edge_key_mapping[source])
-            edge_dest.append(edge_key_mapping[vid_id])
+            edge_train[0].append(edge_key_mapping[source])
+            edge_train[1].append(edge_key_mapping[vid_id])
+            # G.add_edge(edge_key_mapping[source], edge_key_mapping[vid_id])
         for dest in target_says_neigh:
-            edge_dest.append(edge_key_mapping[dest])
-            edge_source.append(edge_key_mapping[dest])
+            edge_train[1].append(edge_key_mapping[vid_id])
+            edge_train[0].append(edge_key_mapping[dest])
+            # G.add_edge(edge_key_mapping[dest], edge_key_mapping[vid_id])
 
         lst = []
-        x.append([compile_data[vid_id]["aver_daily_view"], compile_data[vid_id]["aver_daily_share"]])
-        # lst.append(compile_data[vid_id]["aver_daily_view"])
-        # lst.append(compile_data[vid_id]["aver_daily_share"])
-        # lst.append(compile_data[vid_id]["aver_watch_time"])
-        # lst.extend(compile_data[vid_id]["neighbor_engagement"])
-        # x.append(lst)
+        # x.append([compile_data[vid_id]["aver_daily_view"], compile_data[vid_id]["aver_daily_share"]])
+        lst.append(compile_data[vid_id]["aver_daily_view"])
+        lst.append(compile_data[vid_id]["aver_daily_share"])
+        lst.append(compile_data[vid_id]["aver_watch_time"])
+        lst.extend(compile_data[vid_id]["neighbor_engagement"])
+        x_train.append(lst)
 
-        y.append([compile_data[vid_id]["aver_watch_percentage"], compile_data[vid_id]["relative_engagement"]])
+        # lst.extend([compile_data[vid_id]["aver_watch_percentage"], compile_data[vid_id]["relative_engagement"]])
+        y_train.append([compile_data[vid_id]["aver_watch_percentage"], compile_data[vid_id]["relative_engagement"]])
+        # x_y.append(lst)
 
-
-    # x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.20, random_state=42)
-    # print(len(x_train))
-    x_train = x
-    y_train = y
-    edge_index = torch.tensor([edge_source, edge_dest], dtype=torch.long).to(device)
-    x_train = torch.tensor(x_train, dtype=torch.float).to(device)
-    y_train = torch.tensor(y_train, dtype=torch.float).to(device)
-    # x_test = torch.tensor(x_test, dtype=torch.float).to(device)
-    # y_test = torch.tensor(y_test, dtype=torch.float).to(device)
     x_test = []
     y_test = []
+    edge_test = [[], []]
+    dict2_nodes = defaultdict(bool)
+    for vid_id in dict2:
+        dict2_nodes[vid_id] = True
+        for node in compile_data[vid_id]["neighbors"]:
+            dict2_nodes[node] = True
+    for vid_id in dict2_nodes:  # compile_data.keys():
 
-    return edge_index, x_train, y_train, x_test, y_test
+        source_says_neigh = compile_data[vid_id]["source_neighbors"]
+        target_says_neigh = compile_data[vid_id]["target_neighbors"]
+        for source in source_says_neigh:
+            edge_test[0].append(edge_key_mapping[source])
+            edge_test[1].append(edge_key_mapping[vid_id])
+            # G.add_edge(edge_key_mapping[source], edge_key_mapping[vid_id])
+        for dest in target_says_neigh:
+            edge_test[1].append(edge_key_mapping[vid_id])
+            edge_test[0].append(edge_key_mapping[dest])
+            # G.add_edge(edge_key_mapping[dest], edge_key_mapping[vid_id])
+
+        lst = []
+        # x.append([compile_data[vid_id]["aver_daily_view"], compile_data[vid_id]["aver_daily_share"]])
+        lst.append(compile_data[vid_id]["aver_daily_view"])
+        lst.append(compile_data[vid_id]["aver_daily_share"])
+        lst.append(compile_data[vid_id]["aver_watch_time"])
+        lst.extend(compile_data[vid_id]["neighbor_engagement"])
+        x_test.append(lst)
+
+        # lst.extend([compile_data[vid_id]["aver_watch_percentage"], compile_data[vid_id]["relative_engagement"]])
+        y_test.append([compile_data[vid_id]["aver_watch_percentage"], compile_data[vid_id]["relative_engagement"]])
+        # x_y.append(lst)
 
 
-edge_index, x_train, y_train, x_test, y_test = get_graph()
+    # edge_index = torch.tensor([edge_source, edge_dest], dtype=torch.long).to(device)
+    # x = torch.tensor(x, dtype=torch.float).to(device)
+    # y = torch.tensor(y, dtype=torch.float).to(device)
+    # x_y = torch.tensor(x_y, dtype=float).to(device)
+    # print(x_y.shape, edge_index.shape)
+    # x_train, x_test = train_test_split(x_y, test_size=0.2, random_state=42)
+    # y_train = x_train[:, -2:]
+    # x_train = x_train[:, :4]
+    # y_test = x_test[:, -2:]
+    # x_test = x_test[:, :4]
 
-# edge_index = torch.tensor([[0, 1, 2, 3, 4],  # source
-#                            [1, 2, 3, 4, 0]], # destination
-#                           dtype=torch.long).to(device)
+    # for vid_id in compile_data.keys():
+    #     source_says_neigh = compile_data[vid_id]["source_neighbors"]
+    #     target_says_neigh = compile_data[vid_id]["target_neighbors"]
+    #     for source in source_says_neigh:
+    #         edge_source.append(edge_key_mapping[source])
+    #         edge_dest.append(edge_key_mapping[vid_id])
+    #         G.add_edge(edge_key_mapping[source], edge_key_mapping[vid_id])
+    #     for dest in target_says_neigh:
+    #         edge_dest.append(edge_key_mapping[vid_id])
+    #         edge_source.append(edge_key_mapping[dest])
+    #         G.add_edge(edge_key_mapping[dest], edge_key_mapping[vid_id])
+    # data = Data(x=x, y=y, edge_index=edge_index)
+    #
+    # train_data = Data(x=x_y,
+    #                   edge_index=edge_index,
+    #                   num_classes=len(lst),
+    #                   )
 
-# x = torch.tensor([[1.0, 2.0],
-#                   [2.0, 3.0],
-#                   [3.0, 4.0],
-#                   [4.0, 5.0],
-#                   [5.0, 6.0],
-#                   [0.0, 0.0],
-#                   [0.0, 0.0]], dtype=torch.float).to(device)
+    # nx_graph = data.to_networkx()
+    # G = Graph(nx_graph)
+    # print(data.x)
+    # dataset = GraphDataset(graphs=[G], task='node')
+    # print(dataset)
+    # train_data, val_data, test_data = dataset.split(transductive=True, split_ratio=[0.8, 0.1, 0.1])
+    # print(train_data, val_data, test_data)
 
-# x is (5, 2), edge_index is (2, 5)
+    # train_data, val_data, t_est_data = tfs(data)
 
-# y = torch.tensor([[0, 2], [1, 3], [0, 1], [1, 0], [1, 1], [3, 0], [4, 0]], dtype=torch.float).to(device)
-print("x_train shape[1]:", x_train.shape[1])
-batch = x_train.shape[1]
+    # train_mask = torch.rand(len(compile_data)) < 0.6
+    # test_mask = ~train_mask
+    #
+    # train_data = copy.copy(data)
+    # train_data.edge_index, _ = subgraph(train_mask, data.edge_index, relabel_nodes=True)
+    # train_data.x = data.x[train_mask]
+    # train_data.y = data.y[train_mask]
+    #
+    # test_data = copy.copy(data)
+    # test_data.edge_index, _ = subgraph(test_mask, data.edge_index, relabel_nodes=True)
+    # test_data.x = data.x[test_mask]
+    # test_data.y = data.y[test_mask]
+    #
+    # val_mask = torch.rand(test_mask.num_nodes) < 0.5
+    # test_mask = ~val_mask
+    #
+    # val_data = copy.copy(data)
+    # val_data.edge_index, _ = subgraph(val_mask, data.edge_index, relabel_nodes=True)
+    # val_data.x = data.x[val_mask]
+    # val_data.y = data.y[val_mask]
+    #
+    #
+    # test_data = copy.copy(data)
+    # test_data.edge_index, _ = subgraph(test_mask, data.edge_index, relabel_nodes=True)
+    # test_data.x = data.x[test_mask]
+    # test_data.y = data.y[test_mask]
+    x_train = torch.tensor(x_train, dtype=torch.float).to(device)
+    x_test = torch.tensor(x_test, dtype=torch.float).to(device)
+    y_train = torch.tensor(y_train, dtype=torch.float).to(device)
+    y_test = torch.tensor(y_test, dtype=torch.float).to(device)
+    edge_train = torch.tensor(edge_train, dtype=torch.long).to(device)
+    edge_test = torch.tensor(edge_test, dtype=torch.long).to(device)
+
+    return x_train, x_test, y_train, y_test, edge_train, edge_test
+    # return train_data.x, train_data.y, train_data.edge_index,\
+    #     val_data.x, val_data.y, val_data.edge_index,\
+    #     test_data.x, test_data.y, test_data.edge_index
+
+used = {}
+def get_graph2():
+    num_nodes = 0
+    total_nodes = 35835
+
+    visited = {}
+    for node in compile_data.keys():
+        q = []
+        if node in visited:
+            continue
+        q.append(node)
+        visited[node] = True
+        while q:
+            curr = q.pop(0)
+            for neighbor in compile_data[curr]["neighbors"]:
+                if neighbor not in visited:
+                    q.append(neighbor)
+                    visited[neighbor] = True
+        print(len(visited) / total_nodes * 100)
+        if len(visited) / total_nodes * 100 > 70:
+            break
+    print(len(visited) / total_nodes * 100)
+
+    dict1 = visited
+    dict2 = {}
+    for node in compile_data.keys():
+        if node not in dict1:
+            dict2[node] = True
+
+    edge_key_mapping1 = dict(zip(dict1.keys(), range(len(dict1))))
+    edge_key_mapping2 = dict(zip(dict1.keys(), range(len(dict1))))
+
+    x_test = []
+    y_test = []
+    edge_test = [[], []]
+    edge_key_mapping = edge_key_mapping2
+    for vid_id in dict2:
+        source_says_neigh = compile_data[vid_id]["source_neighbors"]
+        target_says_neigh = compile_data[vid_id]["target_neighbors"]
+        for source in source_says_neigh:
+            if source in edge_key_mapping2:
+                edge_test[0].append(edge_key_mapping[source])
+                edge_test[1].append(edge_key_mapping[vid_id])
+        for dest in target_says_neigh:
+            if dest in edge_key_mapping2:
+                edge_test[1].append(edge_key_mapping[vid_id])
+                edge_test[0].append(edge_key_mapping[dest])
+
+        lst = []
+        lst.append(compile_data[vid_id]["aver_daily_view"])
+        lst.append(compile_data[vid_id]["aver_daily_share"])
+        lst.append(compile_data[vid_id]["aver_watch_time"])
+        lst.extend(compile_data[vid_id]["neighbor_engagement"])
+        x_test.append(lst)
+
+        y_test.append([compile_data[vid_id]["aver_watch_percentage"], compile_data[vid_id]["relative_engagement"]])
+
+    x_train = []
+    y_train = []
+    edge_train = [[], []]
+    edge_key_mapping = edge_key_mapping1
+    for vid_id in dict1:
+        source_says_neigh = compile_data[vid_id]["source_neighbors"]
+        target_says_neigh = compile_data[vid_id]["target_neighbors"]
+        for source in source_says_neigh:
+            edge_train[0].append(edge_key_mapping[source])
+            edge_train[1].append(edge_key_mapping[vid_id])
+        for dest in target_says_neigh:
+            edge_train[1].append(edge_key_mapping[vid_id])
+            edge_train[0].append(edge_key_mapping[dest])
+
+        lst = []
+        lst.append(compile_data[vid_id]["aver_daily_view"])
+        lst.append(compile_data[vid_id]["aver_daily_share"])
+        lst.append(compile_data[vid_id]["aver_watch_time"])
+        lst.extend(compile_data[vid_id]["neighbor_engagement"])
+        x_train.append(lst)
+
+        y_train.append([compile_data[vid_id]["aver_watch_percentage"], compile_data[vid_id]["relative_engagement"]])
+
+    x_train = torch.tensor(x_train, dtype=torch.float).to(device)
+    x_test = torch.tensor(x_test, dtype=torch.float).to(device)
+    y_train = torch.tensor(y_train, dtype=torch.float).to(device)
+    y_test = torch.tensor(y_test, dtype=torch.float).to(device)
+    edge_train = torch.tensor(edge_train, dtype=torch.long).to(device)
+    edge_test = torch.tensor(edge_test, dtype=torch.long).to(device)
+
+    return x_train, x_test, y_train, y_test, edge_train, edge_test
+
+
+
+
+# x_train, y_train, edge_index_train,\
+#     x_val, y_val, edge_index_val, \
+#     x_test, y_test, edge_index_test = get_graph()
+
+x_train, x_test, y_train, y_test, edge_train, edge_test = get_graph2()
+# x_train, x_test, y_train, y_test, edge_train, edge_test = get_graph()
+
+# print("x_train shape[1]:", x_train.shape[1])
+# batch = x_train.shape[1]
 model = GCN(in_channels=x_train.shape[1], hidden_channels=16, out_channels=2).to(device)
 optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
 
 model.train()
 for epoch in range(5):
     optimizer.zero_grad()
-    print(x_train.shape, edge_index.shape)
-    out = model(x_train, edge_index)
+    print(x_train.shape, edge_train.shape)
+    out = model(x_train, edge_train)
     loss = loss_fn(out, y_train)
     # loss = F.nll_loss(out.view(-1, out.shape[0]).flatten(), y_train.view(-1, y_train.shape[0]).flatten())
     loss.backward()
@@ -139,7 +362,7 @@ correct = 0
 total = 0
 # x_test = torch.tensor([[0.5, 0.6], [1.0, 1.1], [2.0, 2.1], [0.0, 0.0], [0.0, 0.0]], dtype=torch.float).to(device)
 # y_test = torch.tensor([[1,1], [1,1], [0,1], [1,1], [0,1]]).to(device)
-pred_test = model(x_test, edge_index)
+pred_test = model(x_test, edge_test)
 if device == 'cuda':
     pred_test = pred_test.cpu()
     y_test = y_test.cpu()
