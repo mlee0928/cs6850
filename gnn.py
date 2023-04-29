@@ -336,41 +336,26 @@ def get_graph2():
 def get_graph3():
     # TODO: get random nodes, run dfs but with cut off, since the test set has less nodes, it probably won't have as big of a graph
     edge_key_mapping = dict(zip(compile_data.keys(), range(len(compile_data))))
-    random_keys = random.sample(list(edge_key_mapping), int(len(edge_key_mapping) * 0.8))
+    random_keys = random.sample(list(edge_key_mapping), int(len(edge_key_mapping) * 0.7))
 
-    # Split the dictionary into two based on the random keys
-    dict1 = {k: edge_key_mapping[k] for k in random_keys}
-    dict2 = {k: edge_key_mapping[k] for k in edge_key_mapping if k not in random_keys}
+    keys = list(edge_key_mapping)
+    split_percentages = [0.8, 0.1, 0.1]
+    split_lengths = [int(len(keys) * p) for p in split_percentages]
+    random.shuffle(keys)
 
-    print(f"total dict: {len(compile_data)}, dict1 size: {len(dict1)}, dict2 size: {len(dict2)}")
+    split1 = keys[:split_lengths[0]]
+    split2 = keys[split_lengths[0]:split_lengths[0] + split_lengths[1]]
+    split3 = keys[split_lengths[0] + split_lengths[1]:]
+
+    dict1 = {k: edge_key_mapping[k] for k in split1}
+    dict2 = {k: edge_key_mapping[k] for k in split2}
+    dict3 = {k: edge_key_mapping[k] for k in split3}
+
+    print(f"total dict: {len(compile_data)}, dict1 size: {len(dict1)}, dict2 size: {len(dict2)}, dict3 size: {len(dict3)}")
 
     edge_key_mapping1 = dict(zip(dict1.keys(), range(len(dict1))))
     edge_key_mapping2 = dict(zip(dict2.keys(), range(len(dict2))))
-
-    x_test = []
-    y_test = []
-    edge_test = [[], []]
-    edge_key_mapping = edge_key_mapping2
-    for vid_id in dict2:
-        source_says_neigh = compile_data[vid_id]["source_neighbors"]
-        target_says_neigh = compile_data[vid_id]["target_neighbors"]
-        for source in source_says_neigh:
-            if source in edge_key_mapping2:
-                edge_test[0].append(edge_key_mapping[source])
-                edge_test[1].append(edge_key_mapping[vid_id])
-        for dest in target_says_neigh:
-            if dest in edge_key_mapping2:
-                edge_test[1].append(edge_key_mapping[vid_id])
-                edge_test[0].append(edge_key_mapping[dest])
-
-        lst = []
-        lst.append(compile_data[vid_id]["aver_daily_view"])
-        lst.append(compile_data[vid_id]["aver_daily_share"])
-        lst.append(compile_data[vid_id]["aver_watch_time"])
-        lst.extend(compile_data[vid_id]["neighbor_engagement"])
-        x_test.append(lst)
-
-        y_test.append([compile_data[vid_id]["aver_watch_percentage"], compile_data[vid_id]["relative_engagement"]])
+    edge_key_mapping3 = dict(zip(dict3.keys(), range(len(dict3))))
 
     x_train = []
     y_train = []
@@ -397,21 +382,76 @@ def get_graph3():
 
         y_train.append([compile_data[vid_id]["aver_watch_percentage"], compile_data[vid_id]["relative_engagement"]])
 
+    x_val = []
+    y_val = []
+    edge_val = [[], []]
+    edge_key_mapping = edge_key_mapping2
+    for vid_id in dict2:
+        source_says_neigh = compile_data[vid_id]["source_neighbors"]
+        target_says_neigh = compile_data[vid_id]["target_neighbors"]
+        for source in source_says_neigh:
+            if source in edge_key_mapping2:
+                edge_val[0].append(edge_key_mapping[source])
+                edge_val[1].append(edge_key_mapping[vid_id])
+        for dest in target_says_neigh:
+            if dest in edge_key_mapping2:
+                edge_val[1].append(edge_key_mapping[vid_id])
+                edge_val[0].append(edge_key_mapping[dest])
+
+        lst = []
+        lst.append(compile_data[vid_id]["aver_daily_view"])
+        lst.append(compile_data[vid_id]["aver_daily_share"])
+        lst.append(compile_data[vid_id]["aver_watch_time"])
+        lst.extend(compile_data[vid_id]["neighbor_engagement"])
+        x_val.append(lst)
+
+        y_val.append([compile_data[vid_id]["aver_watch_percentage"], compile_data[vid_id]["relative_engagement"]])
+
+    x_test = []
+    y_test = []
+    edge_test = [[], []]
+    edge_key_mapping = edge_key_mapping3
+    for vid_id in dict3:
+        source_says_neigh = compile_data[vid_id]["source_neighbors"]
+        target_says_neigh = compile_data[vid_id]["target_neighbors"]
+        for source in source_says_neigh:
+            if source in edge_key_mapping3:
+                edge_test[0].append(edge_key_mapping[source])
+                edge_test[1].append(edge_key_mapping[vid_id])
+        for dest in target_says_neigh:
+            if dest in edge_key_mapping3:
+                edge_test[1].append(edge_key_mapping[vid_id])
+                edge_test[0].append(edge_key_mapping[dest])
+
+        lst = []
+        lst.append(compile_data[vid_id]["aver_daily_view"])
+        lst.append(compile_data[vid_id]["aver_daily_share"])
+        lst.append(compile_data[vid_id]["aver_watch_time"])
+        lst.extend(compile_data[vid_id]["neighbor_engagement"])
+        x_test.append(lst)
+
+        y_test.append([compile_data[vid_id]["aver_watch_percentage"], compile_data[vid_id]["relative_engagement"]])
+
+
+
     x_train = torch.tensor(x_train, dtype=torch.float).to(device)
+    x_val = torch.tensor(x_val, dtype=torch.float).to(device)
     x_test = torch.tensor(x_test, dtype=torch.float).to(device)
     y_train = torch.tensor(y_train, dtype=torch.float).to(device)
+    y_val = torch.tensor(y_val, dtype=torch.float).to(device)
     y_test = torch.tensor(y_test, dtype=torch.float).to(device)
     edge_train = torch.tensor(edge_train, dtype=torch.long).to(device)
+    edge_val = torch.tensor(edge_val, dtype=torch.long).to(device)
     edge_test = torch.tensor(edge_test, dtype=torch.long).to(device)
 
-    return x_train, x_test, y_train, y_test, edge_train, edge_test
+    return x_train, x_test, x_val, y_train, y_test, y_val, edge_train, edge_test, edge_val
 
 
 # x_train, y_train, edge_index_train,\
 #     x_val, y_val, edge_index_val, \
 #     x_test, y_test, edge_index_test = get_graph()
 
-x_train, x_test, y_train, y_test, edge_train, edge_test = get_graph3()
+x_train, x_test, x_val, y_train, y_test, y_val, edge_train, edge_test, edge_val = get_graph3()
 # x_train, x_test, y_train, y_test, edge_train, edge_test = get_graph()
 
 # print("x_train shape[1]:", x_train.shape[1])
@@ -422,7 +462,7 @@ optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
 model.train()
 loss_lst = []
 # TODO: add validation data
-for epoch in range(100):
+for epoch in range(3):
     optimizer.zero_grad()
     print(x_train.shape, edge_train.shape)
     out = model(x_train, edge_train)
@@ -431,7 +471,12 @@ for epoch in range(100):
     # loss = F.nll_loss(out.view(-1, out.shape[0]).flatten(), y_train.view(-1, y_train.shape[0]).flatten())
     loss.backward()
     optimizer.step()
-    print('Epoch: {:03d}, Loss: {:.4f}'.format(epoch, loss.item()))
+
+    model.eval()
+    with torch.no_grad():
+        out = model(x_val, edge_val)
+        loss = loss_fn(y_val, out)
+        print('Epoch: {:03d}, Loss: {:.4f}'.format(epoch, loss.item()))
 
 print(loss_lst)
 plt.plot(loss_lst)
@@ -440,11 +485,6 @@ plt.ylabel('Loss')
 plt.title('Training Loss')
 plt.savefig("gnn_loss_plt.png")
 
-model.eval()
-correct = 0
-total = 0
-# x_test = torch.tensor([[0.5, 0.6], [1.0, 1.1], [2.0, 2.1], [0.0, 0.0], [0.0, 0.0]], dtype=torch.float).to(device)
-# y_test = torch.tensor([[1,1], [1,1], [0,1], [1,1], [0,1]]).to(device)
 pred_test = model(x_test, edge_test)
 if device == 'cuda':
     pred_test = pred_test.cpu()
