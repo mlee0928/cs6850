@@ -1,7 +1,7 @@
 .idea/
 *.zip
 data/
-key.txt
+data/key.txt
 output.json
 
 # Byte-compiled / optimized / DLL files
