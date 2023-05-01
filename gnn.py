@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 # from torch_geometric.transforms import RandomLinkSplit, RandomNodeSplit
 # from torch_geometric.utils import subgraph
 # from deepsnap.dataset import GraphDataset
-# import networkx as nx
+import networkx as nx
 import random
 
 
@@ -80,6 +80,29 @@ Inputs:  1. aver_daily_view
 Outputs: 1. aver_watch_percentage
          2. relative_engagement
 """
+def get_networkx():
+    G = nx.Graph()
+
+    for vid_id in compile_data.keys():
+        lst = []
+        lst.append(compile_data[vid_id]["aver_daily_view"])
+        lst.append(compile_data[vid_id]["aver_daily_share"])
+        lst.append(compile_data[vid_id]["aver_watch_time"])
+        lst.extend(compile_data[vid_id]["neighbor_engagement"])
+        lst.extend([compile_data[vid_id]["aver_watch_percentage"], compile_data[vid_id]["relative_engagement"]])
+        G.add_node(edge_key_mapping[vid_id], node_feature=torch.tensor(lst, dtype=float))
+
+    for vid_id in compile_data.keys():
+
+        source_says_neigh = compile_data[vid_id]["source_neighbors"]
+        target_says_neigh = compile_data[vid_id]["target_neighbors"]
+        for source in source_says_neigh:
+            G.add_edge(edge_key_mapping[source], edge_key_mapping[vid_id])
+        for dest in target_says_neigh:
+            G.add_edge(edge_key_mapping[dest], edge_key_mapping[vid_id])
+
+    return G
+
 def get_graph(input1=True, input2=True, input3=True, input4=True, output1=True, output2=True):
     if input1 + input2 + input3 + input4 == 0 or output1 + output2 == 0:
         raise Exception("Error: Either no choice of input (x options) or output (y options)")
@@ -445,6 +468,11 @@ def get_graph3():
     edge_test = torch.tensor(edge_test, dtype=torch.long).to(device)
 
     return x_train, x_test, x_val, y_train, y_test, y_val, edge_train, edge_test, edge_val
+
+# TODO: when adding node centrality to the input, find them after splitting the train and test data
+graph = get_networkx()
+centrality = nx.eigenvector_centrality_numpy(graph)
+print(centrality)
 
 
 # x_train, y_train, edge_index_train,\
