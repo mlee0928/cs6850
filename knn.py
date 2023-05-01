@@ -55,7 +55,20 @@ def knn():
         losses += ((y_test[i][1] - pred[i][1])) ** 2
     losses /= count
 
-    print(f"R^2: {r2}, MSE: {losses}")
+    def smape(y_pred, y_test):
+        print(y_pred[0])
+        n = len(y_pred)
+        print(n)
+        acc = 0
+        for i in range(n):
+            a = abs(y_pred[i][0] - y_test[i][0])
+            b = abs(y_pred[i][1] - y_test[i][1])
+            c = y_test[i][0] + y_test[i][1]
+            d = y_pred[i][0] + y_pred[i][1]
+            acc += abs((a + b) / ((c + d) / 2))
+        return acc / n
+
+    print(f"SMAPE: {smape(pred, y_test)}, MSE: {losses}")
     # print(f"Pred: {test_pred}, GT: {test_gt}")
 
     f.close()
