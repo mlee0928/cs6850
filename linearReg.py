@@ -2,6 +2,7 @@ from sklearn.metrics import mean_squared_error, r2_score
 import json
 from sklearn.linear_model import LinearRegression
 from sklearn.model_selection import train_test_split
+import numpy as np
 
 with open('data/compile_data.json', 'r', encoding="utf-8") as f:
     compile_data = json.load(f)
@@ -31,6 +32,10 @@ def smape(y_pred, y_test):
     return acc / n
 
 X_train, X_test, y_train, y_test = train_test_split(Xs, Ys, test_size=0.2, random_state=42)
+mag = np.linalg.norm(X_train)
+X_train = X_train / mag
+mag = np.linalg.norm(X_test)
+X_test = X_test / mag
 regr = LinearRegression()
  
 regr.fit(X_train, y_train)

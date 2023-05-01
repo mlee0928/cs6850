@@ -370,7 +370,7 @@ def get_graph3():
     # random_keys = random.sample(list(edge_key_mapping), int(len(edge_key_mapping) * 0.7))
 
     keys = list(edge_key_mapping)
-    split_percentages = [0.8, 0.1, 0.1]
+    split_percentages = [0.6, 0.2, 0.2]
     split_lengths = [int(len(keys) * p) for p in split_percentages]
     random.shuffle(keys)
 
@@ -415,15 +415,14 @@ def get_graph3():
         lst.append(compile_data[vid_id]["aver_daily_share"])
         lst.append(compile_data[vid_id]["aver_watch_time"])
         lst.extend(compile_data[vid_id]["neighbor_engagement"])
-        #
-        # central = []
-        # for vid in compile_data[vid_id]["neighbors"]:
-        #     central.append(centrality[edge_key_mapping[vid]])
-        # central = np.pad(central, (0, len(compile_data[vid_id]["neighbor_engagement"]) - len(central)), 'constant',
-        #                  constant_values=0)
-        # central = central.tolist()
-        # lst.extend(central)
 
+        central = []
+        for vid in compile_data[vid_id]["neighbors"]:
+            central.append(centrality[edge_key_mapping[vid]])
+        central = np.pad(central, (0, len(compile_data[vid_id]["neighbor_engagement"]) - len(central)), 'constant',
+                         constant_values=0)
+        central = central.tolist()
+        lst.extend(central)
         x_train.append(lst)
 
         y_train.append([compile_data[vid_id]["aver_watch_percentage"], compile_data[vid_id]["relative_engagement"]])
@@ -457,14 +456,14 @@ def get_graph3():
         lst.append(compile_data[vid_id]["aver_daily_share"])
         lst.append(compile_data[vid_id]["aver_watch_time"])
         lst.extend(compile_data[vid_id]["neighbor_engagement"])
-        #
-        # central = []
-        # for vid in compile_data[vid_id]["neighbors"]:
-        #     central.append(centrality[edge_key_mapping[vid]])
-        # central = np.pad(central, (0, len(compile_data[vid_id]["neighbor_engagement"]) - len(central)), 'constant',
-        #                  constant_values=0)
-        # central = central.tolist()
-        # lst.extend(central)
+
+        central = []
+        for vid in compile_data[vid_id]["neighbors"]:
+            central.append(centrality[edge_key_mapping[vid]])
+        central = np.pad(central, (0, len(compile_data[vid_id]["neighbor_engagement"]) - len(central)), 'constant',
+                         constant_values=0)
+        central = central.tolist()
+        lst.extend(central)
         x_val.append(lst)
 
         y_val.append([compile_data[vid_id]["aver_watch_percentage"], compile_data[vid_id]["relative_engagement"]])
@@ -497,18 +496,26 @@ def get_graph3():
         lst.append(compile_data[vid_id]["aver_daily_share"])
         lst.append(compile_data[vid_id]["aver_watch_time"])
         lst.extend(compile_data[vid_id]["neighbor_engagement"])
-        # central = []
-        # for vid in compile_data[vid_id]["neighbors"]:
-        #     central.append(centrality[edge_key_mapping[vid]])
-        # central = np.pad(central, (0, len(compile_data[vid_id]["neighbor_engagement"]) - len(central)), 'constant',
-        #                  constant_values=0)
-        # central = central.tolist()
-        # lst.extend(central)
+        central = []
+        for vid in compile_data[vid_id]["neighbors"]:
+            central.append(centrality[edge_key_mapping[vid]])
+        central = np.pad(central, (0, len(compile_data[vid_id]["neighbor_engagement"]) - len(central)), 'constant',
+                         constant_values=0)
+        central = central.tolist()
+        lst.extend(central)
         x_test.append(lst)
 
         y_test.append([compile_data[vid_id]["aver_watch_percentage"], compile_data[vid_id]["relative_engagement"]])
 
+    # TODO: fix train, val, test normalize
+    mag = np.linalg.norm(x_train)
+    x_train = x_train / mag
 
+    mag = np.linalg.norm(x_val)
+    x_val = x_val / mag
+
+    mag = np.linalg.norm(x_test)
+    x_test = x_test / mag
 
     x_train = torch.tensor(x_train, dtype=torch.float).to(device)
     x_val = torch.tensor(x_val, dtype=torch.float).to(device)
