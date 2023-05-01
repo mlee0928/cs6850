@@ -151,6 +151,22 @@ for vid_id in compile_data:
     neighbor_engagement = np.pad(neighbor_engagement, (0, max_neighbors - len(neighbor_engagement)), 'constant', constant_values=0)
     neighbor_engagement = neighbor_engagement.tolist()
     compile_data[vid_id]["neighbor_engagement"] = neighbor_engagement
+            
+    neighbor_aver_daily_view = [compile_data[item]["aver_daily_view"] for item in neighbors]
+    neighbor_aver_daily_share = [compile_data[item]["aver_daily_share"] for item in neighbors]
+    neighbor_aver_watch_time = [compile_data[item]["aver_watch_time"] for item in neighbors]
+    neighbor_aver_watch_percentage = [compile_data[item]["aver_watch_percentage"] for item in neighbors]
+    
+    neighbor_aver_daily_view = np.pad(neighbor_aver_daily_view, (0, max_neighbors - len(neighbor_aver_daily_view)), 'constant', constant_values=0)
+    neighbor_aver_daily_share = np.pad(neighbor_aver_daily_share, (0, max_neighbors - len(neighbor_aver_daily_share)), 'constant', constant_values=0)
+    neighbor_aver_watch_time = np.pad(neighbor_aver_watch_time, (0, max_neighbors - len(neighbor_aver_watch_time)), 'constant', constant_values=0)
+    neighbor_aver_watch_percentage = np.pad(neighbor_aver_watch_percentage, (0, max_neighbors - len(neighbor_aver_watch_percentage)), 'constant', constant_values=0)
+    
+    compile_data[vid_id]["neighbor_aver_daily_view"] = neighbor_aver_daily_view.tolist()
+    compile_data[vid_id]["neighbor_aver_daily_share"] = neighbor_aver_daily_share.tolist()
+    compile_data[vid_id]["neighbor_aver_watch_time"] = neighbor_aver_watch_time.tolist()
+    compile_data[vid_id]["neighbor_aver_watch_percentage"] = neighbor_aver_watch_percentage.tolist()
+    
 print(f'Percentage of videos with neighbors: {number_empty/len(compile_data)}')
 
 edge_key_mapping = dict(zip(compile_data.keys(), range(len(compile_data))))
