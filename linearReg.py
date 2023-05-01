@@ -11,9 +11,11 @@ with open('data/compile_data.json', 'r', encoding="utf-8") as f:
 Xs = []
 Ys = []
 for vid in compile_data.keys():
-  x = [compile_data[vid]["aver_daily_view"], compile_data[vid]["aver_daily_share"], compile_data[vid]['aver_watch_time']]
-  for i in compile_data[vid]['neighbor_engagement']:
-    x.append(i)
+  x = []
+  x.extend(compile_data[vid]["neighbor_aver_daily_view"])
+  x.extend(compile_data[vid]["neighbor_aver_daily_share"])
+  x.extend(compile_data[vid]['neighbor_aver_watch_time'])
+  x.extend(compile_data[vid]['neighbor_engagement'])
   x.extend(compile_data[vid]['centrality'])
   Xs.append(x)
   Ys.append([compile_data[vid]["aver_watch_percentage"], compile_data[vid]["relative_engagement"]])

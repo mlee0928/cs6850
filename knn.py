@@ -19,9 +19,9 @@ def knn():
     Y = []
     for vid in data: 
         x = []
-        x += [data[vid]['aver_daily_view']]
-        x += [data[vid]['aver_daily_share']]
-        x += [data[vid]['aver_watch_time']]
+        x.extend(data[vid]['neighbor_aver_daily_view'])
+        x.extend(data[vid]['neighbor_aver_daily_share'])
+        x.extend(data[vid]['neighbor_aver_watch_time'])
         x += data[vid]['neighbor_engagement']
         x += data[vid]['centrality']
         X += [x]

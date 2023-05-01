@@ -91,9 +91,12 @@ def get_networkx():
 
     for vid_id in compile_data.keys():
         lst = []
-        lst.append(compile_data[vid_id]["aver_daily_view"])
-        lst.append(compile_data[vid_id]["aver_daily_share"])
-        lst.append(compile_data[vid_id]["aver_watch_time"])
+        # lst.append(compile_data[vid_id]["aver_daily_view"])
+        # lst.append(compile_data[vid_id]["aver_daily_share"])
+        # lst.append(compile_data[vid_id]["aver_watch_time"])
+        lst.extend(compile_data[vid_id]["neighbor_aver_daily_view"])
+        lst.extend(compile_data[vid_id]["neighbor_aver_daily_share"])
+        lst.extend(compile_data[vid_id]["neighbor_aver_watch_time"])
         lst.extend(compile_data[vid_id]["neighbor_engagement"])
         lst.extend([compile_data[vid_id]["aver_watch_percentage"], compile_data[vid_id]["relative_engagement"]])
         G.add_node(edge_key_mapping[vid_id], node_feature=torch.tensor(lst, dtype=float))
@@ -152,9 +155,12 @@ def get_graph(input1=True, input2=True, input3=True, input4=True, output1=True, 
 
         lst = []
         # x.append([compile_data[vid_id]["aver_daily_view"], compile_data[vid_id]["aver_daily_share"]])
-        lst.append(compile_data[vid_id]["aver_daily_view"])
-        lst.append(compile_data[vid_id]["aver_daily_share"])
-        lst.append(compile_data[vid_id]["aver_watch_time"])
+        # lst.append(compile_data[vid_id]["aver_daily_view"])
+        # lst.append(compile_data[vid_id]["aver_daily_share"])
+        # lst.append(compile_data[vid_id]["aver_watch_time"])
+        lst.extend(compile_data[vid_id]["neighbor_aver_daily_view"])
+        lst.extend(compile_data[vid_id]["neighbor_aver_daily_share"])
+        lst.extend(compile_data[vid_id]["neighbor_aver_watch_time"])
         lst.extend(compile_data[vid_id]["neighbor_engagement"])
         x_train.append(lst)
 
@@ -185,9 +191,12 @@ def get_graph(input1=True, input2=True, input3=True, input4=True, output1=True, 
 
         lst = []
         # x.append([compile_data[vid_id]["aver_daily_view"], compile_data[vid_id]["aver_daily_share"]])
-        lst.append(compile_data[vid_id]["aver_daily_view"])
-        lst.append(compile_data[vid_id]["aver_daily_share"])
-        lst.append(compile_data[vid_id]["aver_watch_time"])
+        # lst.append(compile_data[vid_id]["aver_daily_view"])
+        # lst.append(compile_data[vid_id]["aver_daily_share"])
+        # lst.append(compile_data[vid_id]["aver_watch_time"])
+        lst.extend(compile_data[vid_id]["neighbor_aver_daily_view"])
+        lst.extend(compile_data[vid_id]["neighbor_aver_daily_share"])
+        lst.extend(compile_data[vid_id]["neighbor_aver_watch_time"])
         lst.extend(compile_data[vid_id]["neighbor_engagement"])
         x_test.append(lst)
 
@@ -322,9 +331,12 @@ def get_graph2():
                 edge_test[0].append(edge_key_mapping[dest])
 
         lst = []
-        lst.append(compile_data[vid_id]["aver_daily_view"])
-        lst.append(compile_data[vid_id]["aver_daily_share"])
-        lst.append(compile_data[vid_id]["aver_watch_time"])
+        # lst.append(compile_data[vid_id]["aver_daily_view"])
+        # lst.append(compile_data[vid_id]["aver_daily_share"])
+        # lst.append(compile_data[vid_id]["aver_watch_time"])
+        lst.extend(compile_data[vid_id]["neighbor_aver_daily_view"])
+        lst.extend(compile_data[vid_id]["neighbor_aver_daily_share"])
+        lst.extend(compile_data[vid_id]["neighbor_aver_watch_time"])
         lst.extend(compile_data[vid_id]["neighbor_engagement"])
         x_test.append(lst)
 
@@ -345,9 +357,12 @@ def get_graph2():
             edge_train[0].append(edge_key_mapping[dest])
 
         lst = []
-        lst.append(compile_data[vid_id]["aver_daily_view"])
-        lst.append(compile_data[vid_id]["aver_daily_share"])
-        lst.append(compile_data[vid_id]["aver_watch_time"])
+        # lst.append(compile_data[vid_id]["aver_daily_view"])
+        # lst.append(compile_data[vid_id]["aver_daily_share"])
+        # lst.append(compile_data[vid_id]["aver_watch_time"])
+        lst.extend(compile_data[vid_id]["neighbor_aver_daily_view"])
+        lst.extend(compile_data[vid_id]["neighbor_aver_daily_share"])
+        lst.extend(compile_data[vid_id]["neighbor_aver_watch_time"])
         lst.extend(compile_data[vid_id]["neighbor_engagement"])
         x_train.append(lst)
 
@@ -411,9 +426,12 @@ def get_graph3():
                 g1.add_edge(edge_key_mapping1[dest], edge_key_mapping1[vid_id])
 
         lst = []
-        lst.append(compile_data[vid_id]["aver_daily_view"])
-        lst.append(compile_data[vid_id]["aver_daily_share"])
-        lst.append(compile_data[vid_id]["aver_watch_time"])
+        # lst.append(compile_data[vid_id]["aver_daily_view"])
+        # lst.append(compile_data[vid_id]["aver_daily_share"])
+        # lst.append(compile_data[vid_id]["aver_watch_time"])
+        lst.extend(compile_data[vid_id]["neighbor_aver_daily_view"])
+        lst.extend(compile_data[vid_id]["neighbor_aver_daily_share"])
+        lst.extend(compile_data[vid_id]["neighbor_aver_watch_time"])
         lst.extend(compile_data[vid_id]["neighbor_engagement"])
 
         central = []
@@ -452,9 +470,12 @@ def get_graph3():
                 neighbors.append(dest)
 
         lst = []
-        lst.append(compile_data[vid_id]["aver_daily_view"])
-        lst.append(compile_data[vid_id]["aver_daily_share"])
-        lst.append(compile_data[vid_id]["aver_watch_time"])
+        # lst.append(compile_data[vid_id]["aver_daily_view"])
+        # lst.append(compile_data[vid_id]["aver_daily_share"])
+        # lst.append(compile_data[vid_id]["aver_watch_time"])
+        lst.extend(compile_data[vid_id]["neighbor_aver_daily_view"])
+        lst.extend(compile_data[vid_id]["neighbor_aver_daily_share"])
+        lst.extend(compile_data[vid_id]["neighbor_aver_watch_time"])
         lst.extend(compile_data[vid_id]["neighbor_engagement"])
 
         central = []
@@ -492,9 +513,12 @@ def get_graph3():
                 neighbors.append(dest)
 
         lst = []
-        lst.append(compile_data[vid_id]["aver_daily_view"])
-        lst.append(compile_data[vid_id]["aver_daily_share"])
-        lst.append(compile_data[vid_id]["aver_watch_time"])
+        # lst.append(compile_data[vid_id]["aver_daily_view"])
+        # lst.append(compile_data[vid_id]["aver_daily_share"])
+        # lst.append(compile_data[vid_id]["aver_watch_time"])
+        lst.extend(compile_data[vid_id]["neighbor_aver_daily_view"])
+        lst.extend(compile_data[vid_id]["neighbor_aver_daily_share"])
+        lst.extend(compile_data[vid_id]["neighbor_aver_watch_time"])
         lst.extend(compile_data[vid_id]["neighbor_engagement"])
         central = []
         for vid in compile_data[vid_id]["neighbors"]:
