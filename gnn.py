@@ -30,18 +30,22 @@ class GCN(torch.nn.Module):
         self.in_channel = in_channels
         self.hidden_channel = hidden_channels
         self.out_channel = out_channels
-        self.conv1 = GCNConv(in_channels, hidden_channels)
-        self.conv2 = GCNConv(hidden_channels, out_channels)
+        self.conv1 = GCNConv(in_channels, 32)
+        self.conv2 = GCNConv(32, hidden_channels)
+        self.conv3 = GCNConv(hidden_channels, out_channels)
 
     def forward(self, x, edge_index):
         # print(x.shape, edge_index.shape)
         # pdb.set_trace()
         x = self.conv1(x, edge_index)
         x = F.relu(x)
-        x = F.dropout(x, training=self.training)
+        x = F.dropout(x, p=0.4)
         x = self.conv2(x, edge_index)
+        x = F.relu(x)
+        x = self.conv3(x, edge_index)
+        x = F.relu(x)
         # x = global_mean_pool(x, torch.zeros_like(torch.tensor(batch)))
-        return F.log_softmax(x, dim=1)
+        return x #F.log_softmax(x, dim=1)
 
 def loss_fn(gt, pred, output1_w = 0.5, output2_w = 0.5):
     count = gt.shape[0]
@@ -411,14 +415,14 @@ def get_graph3():
         lst.append(compile_data[vid_id]["aver_daily_share"])
         lst.append(compile_data[vid_id]["aver_watch_time"])
         lst.extend(compile_data[vid_id]["neighbor_engagement"])
-
-        central = []
-        for vid in compile_data[vid_id]["neighbors"]:
-            central.append(centrality[edge_key_mapping[vid]])
-        central = np.pad(central, (0, len(compile_data[vid_id]["neighbor_engagement"]) - len(central)), 'constant',
-                         constant_values=0)
-        central = central.tolist()
-        lst.extend(central)
+        #
+        # central = []
+        # for vid in compile_data[vid_id]["neighbors"]:
+        #     central.append(centrality[edge_key_mapping[vid]])
+        # central = np.pad(central, (0, len(compile_data[vid_id]["neighbor_engagement"]) - len(central)), 'constant',
+        #                  constant_values=0)
+        # central = central.tolist()
+        # lst.extend(central)
 
         x_train.append(lst)
 
@@ -453,14 +457,14 @@ def get_graph3():
         lst.append(compile_data[vid_id]["aver_daily_share"])
         lst.append(compile_data[vid_id]["aver_watch_time"])
         lst.extend(compile_data[vid_id]["neighbor_engagement"])
-
-        central = []
-        for vid in compile_data[vid_id]["neighbors"]:
-            central.append(centrality[edge_key_mapping[vid]])
-        central = np.pad(central, (0, len(compile_data[vid_id]["neighbor_engagement"]) - len(central)), 'constant',
-                         constant_values=0)
-        central = central.tolist()
-        lst.extend(central)
+        #
+        # central = []
+        # for vid in compile_data[vid_id]["neighbors"]:
+        #     central.append(centrality[edge_key_mapping[vid]])
+        # central = np.pad(central, (0, len(compile_data[vid_id]["neighbor_engagement"]) - len(central)), 'constant',
+        #                  constant_values=0)
+        # central = central.tolist()
+        # lst.extend(central)
         x_val.append(lst)
 
         y_val.append([compile_data[vid_id]["aver_watch_percentage"], compile_data[vid_id]["relative_engagement"]])
@@ -493,13 +497,13 @@ def get_graph3():
         lst.append(compile_data[vid_id]["aver_daily_share"])
         lst.append(compile_data[vid_id]["aver_watch_time"])
         lst.extend(compile_data[vid_id]["neighbor_engagement"])
-        central = []
-        for vid in compile_data[vid_id]["neighbors"]:
-            central.append(centrality[edge_key_mapping[vid]])
-        central = np.pad(central, (0, len(compile_data[vid_id]["neighbor_engagement"]) - len(central)), 'constant',
-                         constant_values=0)
-        central = central.tolist()
-        lst.extend(central)
+        # central = []
+        # for vid in compile_data[vid_id]["neighbors"]:
+        #     central.append(centrality[edge_key_mapping[vid]])
+        # central = np.pad(central, (0, len(compile_data[vid_id]["neighbor_engagement"]) - len(central)), 'constant',
+        #                  constant_values=0)
+        # central = central.tolist()
+        # lst.extend(central)
         x_test.append(lst)
 
         y_test.append([compile_data[vid_id]["aver_watch_percentage"], compile_data[vid_id]["relative_engagement"]])
@@ -540,7 +544,20 @@ val_loss = []
 # best_val_loss = float('inf')
 # patience = 10
 # counter = 0
-for epoch in range(120):
+def smape(y_pred, y_test):
+    print(y_pred[0])
+    n = len(y_pred)
+    print(n)
+    acc = 0
+    for i in range(n):
+        a = abs(y_pred[i][0] - y_test[i][0])
+        b = abs(y_pred[i][1] - y_test[i][1])
+        c = y_test[i][0] + y_test[i][1]
+        d = y_pred[i][0] + y_pred[i][1]
+        acc += abs((a + b) / ((c + d) / 2))
+    return acc / n
+
+for epoch in range(150):
     optimizer.zero_grad()
     # print(x_train.shape, edge_train.shape)
     out = model(x_train, edge_train)
@@ -559,6 +576,12 @@ for epoch in range(120):
             val_loss.append(loss.item())
         print('Epoch: {:03d}, Val Loss: {:.4f}'.format(epoch, loss.item()))
 
+        pred_test = model(x_test, edge_test)
+        print(type(pred_test.cpu().detach().numpy()))
+        print(type(y_test.cpu().detach().numpy()))
+        sm = smape(pred_test.cpu().detach().numpy(), y_test.cpu().detach().numpy())
+
+    print(f"SMAPE: {sm}, MSE: {loss}")
     # print(loss.item(), type(loss.item()), best_val_loss, type(best_val_loss))
     # if loss.item() < best_val_loss:
     #     best_val_loss = loss.item()
