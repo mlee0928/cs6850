@@ -16,7 +16,7 @@ for vid in compile_data.keys():
   Xs.append(x)
   Ys.append([compile_data[vid]["aver_watch_percentage"], compile_data[vid]["relative_engagement"]])
   
-X_train, X_test, y_train, y_test = train_test_split(Xs, Ys, test_size = 0.2, random_state=42)
+X_train, X_test, y_train, y_test = train_test_split(Xs, Ys, test_size=0.2, random_state=42)
 regr = LinearRegression()
  
 regr.fit(X_train, y_train)

@@ -4,6 +4,9 @@ from torch_geometric.nn import GCNConv, global_mean_pool
 import json
 from collections import defaultdict
 import matplotlib.pyplot as plt
+import numpy as np
+from sklearn.metrics import r2_score
+
 # from deepsnap.graph import Graph
 #
 # from sklearn.model_selection import train_test_split
@@ -42,7 +45,7 @@ class GCN(torch.nn.Module):
 
 def loss_fn(gt, pred, output1_w = 0.5, output2_w = 0.5):
     count = gt.shape[0]
-    print("gt shape:", count)
+    # print("gt shape:", count)
     losses = 0
     for i in range(count):
         losses += ((gt[i][0] - pred[i][0]) * output1_w) ** 2
@@ -69,14 +72,13 @@ random_keys = random.sample(list(edge_key_mapping), int(len(edge_key_mapping) * 
 dict1 = {k: edge_key_mapping[k] for k in random_keys}
 dict2 = {k: edge_key_mapping[k] for k in edge_key_mapping if k not in random_keys}
 
-# TODO: redo mapping for indices
-
 
 """
 Inputs:  1. aver_daily_view
          2. aver_daily_share
          3. aver_watch_time
          4. neighbor_engagement
+         5. network centrality
 Outputs: 1. aver_watch_percentage
          2. relative_engagement
 """
@@ -285,10 +287,10 @@ def get_graph2():
                 if neighbor not in visited:
                     q.append(neighbor)
                     visited[neighbor] = True
-        print(len(visited) / total_nodes * 100)
+        # print(len(visited) / total_nodes * 100)
         if len(visited) / total_nodes * 100 > 70:
             break
-    print(len(visited) / total_nodes * 100)
+    # print(len(visited) / total_nodes * 100)
 
     dict1 = visited
     dict2 = {}
@@ -357,9 +359,11 @@ def get_graph2():
     return x_train, x_test, y_train, y_test, edge_train, edge_test
 
 def get_graph3():
-    # TODO: get random nodes, run dfs but with cut off, since the test set has less nodes, it probably won't have as big of a graph
+    graph = get_networkx()
+    centrality = nx.eigenvector_centrality_numpy(graph)
+
     edge_key_mapping = dict(zip(compile_data.keys(), range(len(compile_data))))
-    random_keys = random.sample(list(edge_key_mapping), int(len(edge_key_mapping) * 0.7))
+    # random_keys = random.sample(list(edge_key_mapping), int(len(edge_key_mapping) * 0.7))
 
     keys = list(edge_key_mapping)
     split_percentages = [0.8, 0.1, 0.1]
@@ -374,83 +378,128 @@ def get_graph3():
     dict2 = {k: edge_key_mapping[k] for k in split2}
     dict3 = {k: edge_key_mapping[k] for k in split3}
 
-    print(f"total dict: {len(compile_data)}, dict1 size: {len(dict1)}, dict2 size: {len(dict2)}, dict3 size: {len(dict3)}")
+    # print(f"total dict: {len(compile_data)}, dict1 size: {len(dict1)}, dict2 size: {len(dict2)}, dict3 size: {len(dict3)}")
 
     edge_key_mapping1 = dict(zip(dict1.keys(), range(len(dict1))))
     edge_key_mapping2 = dict(zip(dict2.keys(), range(len(dict2))))
     edge_key_mapping3 = dict(zip(dict3.keys(), range(len(dict3))))
 
+    g1 = nx.Graph()
+    g2 = nx.Graph()
+    g3 = nx.Graph()
+
     x_train = []
     y_train = []
     edge_train = [[], []]
-    edge_key_mapping = edge_key_mapping1
+    neighbors = []
     for vid_id in dict1:
         source_says_neigh = compile_data[vid_id]["source_neighbors"]
         target_says_neigh = compile_data[vid_id]["target_neighbors"]
         for source in source_says_neigh:
             if source in edge_key_mapping1:
-                edge_train[0].append(edge_key_mapping[source])
-                edge_train[1].append(edge_key_mapping[vid_id])
+                edge_train[0].append(edge_key_mapping1[source])
+                edge_train[1].append(edge_key_mapping1[vid_id])
+                g1.add_edge(edge_key_mapping1[source], edge_key_mapping1[vid_id])
         for dest in target_says_neigh:
             if dest in edge_key_mapping1:
-                edge_train[1].append(edge_key_mapping[vid_id])
-                edge_train[0].append(edge_key_mapping[dest])
+                edge_train[1].append(edge_key_mapping1[vid_id])
+                edge_train[0].append(edge_key_mapping1[dest])
+                g1.add_edge(edge_key_mapping1[dest], edge_key_mapping1[vid_id])
 
         lst = []
         lst.append(compile_data[vid_id]["aver_daily_view"])
         lst.append(compile_data[vid_id]["aver_daily_share"])
         lst.append(compile_data[vid_id]["aver_watch_time"])
         lst.extend(compile_data[vid_id]["neighbor_engagement"])
+
+        central = []
+        for vid in compile_data[vid_id]["neighbors"]:
+            central.append(centrality[edge_key_mapping[vid]])
+        central = np.pad(central, (0, len(compile_data[vid_id]["neighbor_engagement"]) - len(central)), 'constant',
+                         constant_values=0)
+        central = central.tolist()
+        lst.extend(central)
+
         x_train.append(lst)
 
         y_train.append([compile_data[vid_id]["aver_watch_percentage"], compile_data[vid_id]["relative_engagement"]])
 
+
+
+
+
     x_val = []
     y_val = []
     edge_val = [[], []]
-    edge_key_mapping = edge_key_mapping2
+    neighbors = []
     for vid_id in dict2:
         source_says_neigh = compile_data[vid_id]["source_neighbors"]
         target_says_neigh = compile_data[vid_id]["target_neighbors"]
         for source in source_says_neigh:
             if source in edge_key_mapping2:
-                edge_val[0].append(edge_key_mapping[source])
-                edge_val[1].append(edge_key_mapping[vid_id])
+                edge_val[0].append(edge_key_mapping2[source])
+                edge_val[1].append(edge_key_mapping2[vid_id])
+                g2.add_edge(edge_key_mapping2[source], edge_key_mapping2[vid_id])
+                neighbors.append(source)
         for dest in target_says_neigh:
             if dest in edge_key_mapping2:
-                edge_val[1].append(edge_key_mapping[vid_id])
-                edge_val[0].append(edge_key_mapping[dest])
+                edge_val[1].append(edge_key_mapping2[vid_id])
+                edge_val[0].append(edge_key_mapping2[dest])
+                g2.add_edge(edge_key_mapping2[dest], edge_key_mapping2[vid_id])
+                neighbors.append(dest)
 
         lst = []
         lst.append(compile_data[vid_id]["aver_daily_view"])
         lst.append(compile_data[vid_id]["aver_daily_share"])
         lst.append(compile_data[vid_id]["aver_watch_time"])
         lst.extend(compile_data[vid_id]["neighbor_engagement"])
+
+        central = []
+        for vid in compile_data[vid_id]["neighbors"]:
+            central.append(centrality[edge_key_mapping[vid]])
+        central = np.pad(central, (0, len(compile_data[vid_id]["neighbor_engagement"]) - len(central)), 'constant',
+                         constant_values=0)
+        central = central.tolist()
+        lst.extend(central)
         x_val.append(lst)
 
         y_val.append([compile_data[vid_id]["aver_watch_percentage"], compile_data[vid_id]["relative_engagement"]])
 
+
+
+
     x_test = []
     y_test = []
     edge_test = [[], []]
-    edge_key_mapping = edge_key_mapping3
+    neighbors = []
     for vid_id in dict3:
         source_says_neigh = compile_data[vid_id]["source_neighbors"]
         target_says_neigh = compile_data[vid_id]["target_neighbors"]
         for source in source_says_neigh:
             if source in edge_key_mapping3:
-                edge_test[0].append(edge_key_mapping[source])
-                edge_test[1].append(edge_key_mapping[vid_id])
+                edge_test[0].append(edge_key_mapping3[source])
+                edge_test[1].append(edge_key_mapping3[vid_id])
+                g3.add_edge(edge_key_mapping3[source], edge_key_mapping3[vid_id])
+                neighbors.append(source)
         for dest in target_says_neigh:
             if dest in edge_key_mapping3:
-                edge_test[1].append(edge_key_mapping[vid_id])
-                edge_test[0].append(edge_key_mapping[dest])
+                edge_test[1].append(edge_key_mapping3[vid_id])
+                edge_test[0].append(edge_key_mapping3[dest])
+                g3.add_edge(edge_key_mapping3[dest], edge_key_mapping3[vid_id])
+                neighbors.append(dest)
 
         lst = []
         lst.append(compile_data[vid_id]["aver_daily_view"])
         lst.append(compile_data[vid_id]["aver_daily_share"])
         lst.append(compile_data[vid_id]["aver_watch_time"])
         lst.extend(compile_data[vid_id]["neighbor_engagement"])
+        central = []
+        for vid in compile_data[vid_id]["neighbors"]:
+            central.append(centrality[edge_key_mapping[vid]])
+        central = np.pad(central, (0, len(compile_data[vid_id]["neighbor_engagement"]) - len(central)), 'constant',
+                         constant_values=0)
+        central = central.tolist()
+        lst.extend(central)
         x_test.append(lst)
 
         y_test.append([compile_data[vid_id]["aver_watch_percentage"], compile_data[vid_id]["relative_engagement"]])
@@ -469,10 +518,8 @@ def get_graph3():
 
     return x_train, x_test, x_val, y_train, y_test, y_val, edge_train, edge_test, edge_val
 
-# TODO: when adding node centrality to the input, find them after splitting the train and test data
-graph = get_networkx()
-centrality = nx.eigenvector_centrality_numpy(graph)
-print(centrality)
+
+# print(centrality)
 
 
 # x_train, y_train, edge_index_train,\
@@ -490,13 +537,16 @@ optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
 model.train()
 train_loss = []
 val_loss = []
-# TODO: add validation data
-for epoch in range(100):
+# best_val_loss = float('inf')
+# patience = 10
+# counter = 0
+for epoch in range(120):
     optimizer.zero_grad()
-    print(x_train.shape, edge_train.shape)
+    # print(x_train.shape, edge_train.shape)
     out = model(x_train, edge_train)
     loss = loss_fn(out, y_train)
-    train_loss.append(loss.cpu().data.numpy())
+    if epoch > 50:
+        train_loss.append(loss.cpu().data.numpy())
     # loss = F.nll_loss(out.view(-1, out.shape[0]).flatten(), y_train.view(-1, y_train.shape[0]).flatten())
     loss.backward()
     optimizer.step()
@@ -505,15 +555,27 @@ for epoch in range(100):
     with torch.no_grad():
         out = model(x_val, edge_val)
         loss = loss_fn(y_val, out)
-        val_loss.append(loss.item())
-        print('Epoch: {:03d}, Loss: {:.4f}'.format(epoch, loss.item()))
+        if epoch > 50:
+            val_loss.append(loss.item())
+        print('Epoch: {:03d}, Val Loss: {:.4f}'.format(epoch, loss.item()))
+
+    # print(loss.item(), type(loss.item()), best_val_loss, type(best_val_loss))
+    # if loss.item() < best_val_loss:
+    #     best_val_loss = loss.item()
+    #     counter = 0
+    # else:
+    #     counter += 1
+
+    # if counter >= patience:
+    #     print("Early stopping after {} epochs".format(epoch))
+    #     break
 
 plt.plot(train_loss, color='red', label="train loss")
 plt.plot(val_loss, color='blue', label="val loss")
 plt.xlabel('Epoch')
 plt.ylabel('Loss')
 plt.legend()
-plt.title('Training Loss')
+plt.title('Loss (starting at epoch 50)')
 plt.savefig("gnn_loss_plt.png")
 
 pred_test = model(x_test, edge_test)
@@ -521,6 +583,7 @@ if device == 'cuda':
     pred_test = pred_test.cpu()
     y_test = y_test.cpu()
 
+r2 = r2_score(pred_test.detach().numpy(), y_test.detach().numpy())
 loss = loss_fn(pred_test, y_test)
 
-print(f"Test Loss: {loss}")
+print(f"R^2: {r2}, MSE: {loss}")
