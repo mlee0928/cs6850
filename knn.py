@@ -23,6 +23,7 @@ def knn():
         x += [data[vid]['aver_daily_share']]
         x += [data[vid]['aver_watch_time']]
         x += data[vid]['neighbor_engagement']
+        x += data[vid]['centrality']
         X += [x]
         y = []
         y += [data[vid]['aver_watch_percentage']]

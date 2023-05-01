@@ -3,6 +3,8 @@ import pickle
 import isodate
 import os
 import numpy as np
+import networkx as nx
+import torch
 
 class EngagementMap(object):
     # https://github.com/avalanchesiqi/youtube-engagement/blob/master/engagement_map/query_engagement.py
@@ -151,6 +153,45 @@ for vid_id in compile_data:
     compile_data[vid_id]["neighbor_engagement"] = neighbor_engagement
 print(f'Percentage of videos with neighbors: {number_empty/len(compile_data)}')
 
+edge_key_mapping = dict(zip(compile_data.keys(), range(len(compile_data))))
+keys = list(edge_key_mapping)
+
+def get_networkx():
+    G = nx.Graph()
+
+    for vid_id in compile_data.keys():
+        lst = []
+        lst.append(compile_data[vid_id]["aver_daily_view"])
+        lst.append(compile_data[vid_id]["aver_daily_share"])
+        lst.append(compile_data[vid_id]["aver_watch_time"])
+        lst.extend(compile_data[vid_id]["neighbor_engagement"])
+        lst.extend([compile_data[vid_id]["aver_watch_percentage"], compile_data[vid_id]["relative_engagement"]])
+        G.add_node(edge_key_mapping[vid_id], node_feature=torch.tensor(lst, dtype=float))
+
+    for vid_id in compile_data.keys():
+
+        source_says_neigh = compile_data[vid_id]["source_neighbors"]
+        target_says_neigh = compile_data[vid_id]["target_neighbors"]
+        for source in source_says_neigh:
+            G.add_edge(edge_key_mapping[source], edge_key_mapping[vid_id])
+        for dest in target_says_neigh:
+            G.add_edge(edge_key_mapping[dest], edge_key_mapping[vid_id])
+
+    return G
+
+graph = get_networkx()
+centrality = nx.eigenvector_centrality_numpy(graph)
+
+for vid_id in compile_data:
+    central = []
+    for vid in compile_data[vid_id]["neighbors"]:
+        central.append(centrality[edge_key_mapping[vid]])
+    central = np.pad(central, (0, len(compile_data[vid_id]["neighbor_engagement"]) - len(central)), 'constant',
+                        constant_values=0)
+    central = central.tolist()
+    compile_data[vid_id]['centrality'] = central
+
+        
 with open("data/compile_data.json", "w", encoding="utf-8") as f:
     json.dump(compile_data, f)
 

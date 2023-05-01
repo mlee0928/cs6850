@@ -13,6 +13,7 @@ for vid in compile_data.keys():
   x = [compile_data[vid]["aver_daily_view"], compile_data[vid]["aver_daily_share"], compile_data[vid]['aver_watch_time']]
   for i in compile_data[vid]['neighbor_engagement']:
     x.append(i)
+  x.extend(compile_data[vid]['centrality'])
   Xs.append(x)
   Ys.append([compile_data[vid]["aver_watch_percentage"], compile_data[vid]["relative_engagement"]])
   
