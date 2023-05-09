@@ -631,6 +631,8 @@ plt.title('Loss')
 num = 0
 plt.savefig(f"gnn_loss_plt_{num}.png")
 
+np.savetxt(f"gnn_loss_vals_{num}", np.array([train_loss, val_loss]))
+
 pred_test = model(x_test, edge_test)
 if device == 'cuda':
     pred_test = pred_test.cpu()
@@ -638,5 +640,5 @@ if device == 'cuda':
 
 r2 = r2_score(pred_test.detach().numpy(), y_test.detach().numpy())
 loss = loss_fn(pred_test, y_test)
-
-print(f"R^2: {r2}, MSE: {loss}")
+sm = smape(pred_test.cpu().detach().numpy(), y_test.cpu().detach().numpy())
+print(f"SMAPE: {sm}, MSE: {loss}")

@@ -1,0 +1,1 @@
+gnn_loss_plt_0.png --> gnn with all variables, MSE loss function, Adam optimizer
