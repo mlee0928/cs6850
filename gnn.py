@@ -588,12 +588,12 @@ def smape(y_pred, y_test):
         acc += abs((a + b) / ((c + d) / 2))
     return acc / n
 
-for epoch in range(150):
+for epoch in range(100):
     optimizer.zero_grad()
     # print(x_train.shape, edge_train.shape)
     out = model(x_train, edge_train)
     loss = loss_fn(out, y_train)
-    if epoch > 50:
+    if epoch > 10:
         train_loss.append(loss.cpu().data.numpy())
     # loss = F.nll_loss(out.view(-1, out.shape[0]).flatten(), y_train.view(-1, y_train.shape[0]).flatten())
     loss.backward()
@@ -630,7 +630,8 @@ plt.xlabel('Epoch')
 plt.ylabel('Loss')
 plt.legend()
 plt.title('Loss (starting at epoch 50)')
-plt.savefig("gnn_loss_plt.png")
+num = 1
+plt.savefig(f"gnn_loss_plt_{num}.png")
 
 pred_test = model(x_test, edge_test)
 if device == 'cuda':
