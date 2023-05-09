@@ -14,7 +14,7 @@ for vid in compile_data.keys():
   x = []
   x.extend(compile_data[vid]["neighbor_aver_daily_view"])
   x.extend(compile_data[vid]["neighbor_aver_daily_share"])
-  x.extend(compile_data[vid]['neighbor_aver_watch_time'])
+  x.extend(compile_data[vid]['neighbor_aver_watch_percentage'])
   x.extend(compile_data[vid]['neighbor_engagement'])
   x.extend(compile_data[vid]['centrality'])
   Xs.append(x)

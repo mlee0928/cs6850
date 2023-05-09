@@ -4,8 +4,6 @@ from torch_geometric.nn import GCNConv
 import json
 import matplotlib.pyplot as plt
 import numpy as np
-from sklearn.metrics import r2_score
-import networkx as nx
 import random
 
 random.seed(42)
@@ -75,39 +73,13 @@ edge_key_mapping = dict(zip(compile_data.keys(), range(len(compile_data))))
 """
 Inputs:  1. neighbor_aver_daily_view
          2. neighbor_aver_daily_share
-         3. neighbor_aver_watch_time
+         3. neighbor_aver_watch_percentage
          4. neighbor_engagement
          5. network centrality
 Outputs: 1. aver_watch_percentage
          2. relative_engagement
 """
-def get_networkx():
-    G = nx.Graph()
-
-    for vid_id in compile_data.keys():
-        lst = []
-        lst.extend(compile_data[vid_id]["neighbor_aver_daily_view"])
-        lst.extend(compile_data[vid_id]["neighbor_aver_daily_share"])
-        lst.extend(compile_data[vid_id]["neighbor_aver_watch_time"])
-        lst.extend(compile_data[vid_id]["neighbor_engagement"])
-        lst.extend([compile_data[vid_id]["aver_watch_percentage"], compile_data[vid_id]["relative_engagement"]])
-        G.add_node(edge_key_mapping[vid_id], node_feature=torch.tensor(lst, dtype=float))
-
-    for vid_id in compile_data.keys():
-
-        source_says_neigh = compile_data[vid_id]["source_neighbors"]
-        target_says_neigh = compile_data[vid_id]["target_neighbors"]
-        for source in source_says_neigh:
-            G.add_edge(edge_key_mapping[source], edge_key_mapping[vid_id])
-        for dest in target_says_neigh:
-            G.add_edge(edge_key_mapping[dest], edge_key_mapping[vid_id])
-
-    return G
-
 def get_graph():
-    graph = get_networkx()
-    centrality = nx.eigenvector_centrality_numpy(graph)
-
     keys = list(edge_key_mapping)
     split_percentages = [0.6, 0.2, 0.2]
     split_lengths = [int(len(keys) * p) for p in split_percentages]
@@ -142,21 +114,11 @@ def get_graph():
                     edge[1].append(edge_key_map[vid_id])
                     edge[0].append(edge_key_map[dest])
 
-            central = []
-            for vid in compile_data[vid_id]["neighbors"]:
-                central.append(centrality[edge_key_mapping[vid]])
-            central = np.pad(central, (0, len(compile_data[vid_id]["neighbor_engagement"]) - len(central)), 'constant',
-                             constant_values=0)
-            central = central.tolist()
-
             all_keys = ["neighbor_aver_daily_view", "neighbor_aver_daily_share",
-                        "neighbor_aver_watch_time", "neighbor_engagement", "central"]
+                        "neighbor_aver_watch_percentage", "neighbor_engagement", "centrality"]
             lst = []
             for k in all_keys:
-                if k == "central":
-                    lst.extend(central)
-                else:
-                    lst.extend(compile_data[vid_id][k])
+                lst.extend(compile_data[vid_id][k])
 
             x.append(lst)
             y.append([compile_data[vid_id]["aver_watch_percentage"], compile_data[vid_id]["relative_engagement"]])

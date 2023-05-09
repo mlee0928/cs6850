@@ -3,14 +3,15 @@ import json
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import r2_score
 
-'''
-Inputs:  1. aver_daily_view
-         2. aver_daily_share
-         3. aver_watch_time
+"""
+Inputs:  1. neighbor_aver_daily_view
+         2. neighbor_aver_daily_share
+         3. neighbor_aver_watch_percentage
          4. neighbor_engagement
+         5. network centrality
 Outputs: 1. aver_watch_percentage
          2. relative_engagement
-'''
+"""
 def knn(): 
     # Convert data to feature matrix 
     f = open('data/compile_data.json')
@@ -21,7 +22,7 @@ def knn():
         x = []
         x.extend(data[vid]['neighbor_aver_daily_view'])
         x.extend(data[vid]['neighbor_aver_daily_share'])
-        x.extend(data[vid]['neighbor_aver_watch_time'])
+        x.extend(data[vid]['neighbor_aver_watch_percentage'])
         x += data[vid]['neighbor_engagement']
         x += data[vid]['centrality']
         X += [x]
@@ -38,9 +39,9 @@ def knn():
 
     # Test prediction
     test_point = []
-    test_point += [data['--5u48IaR4M']['aver_daily_view']]
-    test_point += [data['--5u48IaR4M']['aver_daily_share']]
-    test_point += [data['--5u48IaR4M']['aver_watch_time']]
+    test_point += [data['--5u48IaR4M']['neighbor_aver_daily_view']]
+    test_point += [data['--5u48IaR4M']['neighbor_aver_daily_share']]
+    test_point += [data['--5u48IaR4M']['neighbor_aver_watch_percentage']]
     test_point += data['--5u48IaR4M']['neighbor_engagement']
 
     test_gt = [data['--5u48IaR4M']["aver_watch_percentage"], data['--5u48IaR4M']['relative_engagement']]
