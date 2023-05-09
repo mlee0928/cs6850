@@ -593,8 +593,7 @@ for epoch in range(100):
     # print(x_train.shape, edge_train.shape)
     out = model(x_train, edge_train)
     loss = loss_fn(out, y_train)
-    if epoch > 10:
-        train_loss.append(loss.cpu().data.numpy())
+    train_loss.append(loss.cpu().data.numpy())
     # loss = F.nll_loss(out.view(-1, out.shape[0]).flatten(), y_train.view(-1, y_train.shape[0]).flatten())
     loss.backward()
     optimizer.step()
@@ -603,8 +602,7 @@ for epoch in range(100):
     with torch.no_grad():
         out = model(x_val, edge_val)
         loss = loss_fn(y_val, out)
-        if epoch > 50:
-            val_loss.append(loss.item())
+        val_loss.append(loss.item())
         print('Epoch: {:03d}, Val Loss: {:.4f}'.format(epoch, loss.item()))
 
         pred_test = model(x_test, edge_test)
@@ -629,8 +627,8 @@ plt.plot(val_loss, color='blue', label="val loss")
 plt.xlabel('Epoch')
 plt.ylabel('Loss')
 plt.legend()
-plt.title('Loss (starting at epoch 50)')
-num = 1
+plt.title('Loss')
+num = 0
 plt.savefig(f"gnn_loss_plt_{num}.png")
 
 pred_test = model(x_test, edge_test)
