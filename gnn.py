@@ -116,6 +116,8 @@ def get_graph():
 
             all_keys = ["neighbor_aver_daily_view", "neighbor_aver_daily_share",
                         "neighbor_aver_watch_percentage", "neighbor_engagement", "centrality"]
+            all_keys = ["neighbor_aver_daily_view", "neighbor_aver_daily_share",
+                        "neighbor_engagement", "neighbor_aver_watch_percentage"]
             lst = []
             for k in all_keys:
                 lst.extend(compile_data[vid_id][k])
@@ -177,7 +179,7 @@ plt.xlabel('Epoch')
 plt.ylabel('Loss')
 plt.legend()
 plt.title('Loss')
-num = 1
+num = 3
 plt.savefig(f"gnn_loss_plt_{num}.png")
 
 np.savetxt(f"gnn_loss_vals_{num}", np.array([train_loss, val_loss]))
