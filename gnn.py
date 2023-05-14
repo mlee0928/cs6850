@@ -156,7 +156,7 @@ lst_dict = {0: ["neighbor_aver_daily_view", "neighbor_aver_daily_share", "neighb
             }
 epochs = 150
 
-for num in range(13, 15):
+for num in range(16, 17):
     def get_graph1():
         # random edge level link split
         all_edge = []
