@@ -4,7 +4,8 @@ import isodate
 import os
 import numpy as np
 import networkx as nx
-import torch
+from collections import defaultdict
+import statistics
 
 class EngagementMap(object):
     # https://github.com/avalanchesiqi/youtube-engagement/blob/master/engagement_map/query_engagement.py
@@ -102,7 +103,7 @@ print(f"bad ones: {count}, total: {len(all_data)}, percentage bad: {float(count)
 engagement = EngagementMap('data/engagement_map.p')
 
 compile_data = {}
-max_neighbors = 0
+max_neighbors = 5
 for vid_id in output_data:
     vid_dict = output_data[vid_id]
     all_data_dict = all_data[vid_id]
@@ -139,35 +140,6 @@ for vid_id in output_data:
                             "source_neighbors":  source_neighbors,
                             "target_neighbors":  target_neighbors}
 
-number_empty = 0
-for vid_id in compile_data:
-    neighbors = compile_data[vid_id]["neighbors"]
-    if len(neighbors) == 0:
-        number_empty += 1
-    neighbor_engagement = [
-        engagement.query_engagement_map(compile_data[item]["duration"],
-                                        compile_data[item]["aver_watch_percentage"]) for item in neighbors
-    ]
-    neighbor_engagement = np.pad(neighbor_engagement, (0, max_neighbors - len(neighbor_engagement)), 'constant', constant_values=0)
-    neighbor_engagement = neighbor_engagement.tolist()
-    compile_data[vid_id]["neighbor_engagement"] = neighbor_engagement
-            
-    neighbor_aver_daily_view = [compile_data[item]["aver_daily_view"] for item in neighbors]
-    neighbor_aver_daily_share = [compile_data[item]["aver_daily_share"] for item in neighbors]
-    neighbor_aver_watch_time = [compile_data[item]["aver_watch_time"] for item in neighbors]
-    neighbor_aver_watch_percentage = [compile_data[item]["aver_watch_percentage"] for item in neighbors]
-    
-    neighbor_aver_daily_view = np.pad(neighbor_aver_daily_view, (0, max_neighbors - len(neighbor_aver_daily_view)), 'constant', constant_values=0)
-    neighbor_aver_daily_share = np.pad(neighbor_aver_daily_share, (0, max_neighbors - len(neighbor_aver_daily_share)), 'constant', constant_values=0)
-    neighbor_aver_watch_time = np.pad(neighbor_aver_watch_time, (0, max_neighbors - len(neighbor_aver_watch_time)), 'constant', constant_values=0)
-    neighbor_aver_watch_percentage = np.pad(neighbor_aver_watch_percentage, (0, max_neighbors - len(neighbor_aver_watch_percentage)), 'constant', constant_values=0)
-    
-    compile_data[vid_id]["neighbor_aver_daily_view"] = neighbor_aver_daily_view.tolist()
-    compile_data[vid_id]["neighbor_aver_daily_share"] = neighbor_aver_daily_share.tolist()
-    compile_data[vid_id]["neighbor_aver_watch_time"] = neighbor_aver_watch_time.tolist()
-    compile_data[vid_id]["neighbor_aver_watch_percentage"] = neighbor_aver_watch_percentage.tolist()
-    
-print(f'Percentage of videos with neighbors: {number_empty/len(compile_data)}')
 
 edge_key_mapping = dict(zip(compile_data.keys(), range(len(compile_data))))
 keys = list(edge_key_mapping)
@@ -175,17 +147,17 @@ keys = list(edge_key_mapping)
 def get_networkx():
     G = nx.Graph()
 
-    for vid_id in compile_data.keys():
-        lst = []
-        lst.append(compile_data[vid_id]["aver_daily_view"])
-        lst.append(compile_data[vid_id]["aver_daily_share"])
-        lst.append(compile_data[vid_id]["aver_watch_time"])
-        lst.extend(compile_data[vid_id]["neighbor_engagement"])
-        lst.extend([compile_data[vid_id]["aver_watch_percentage"], compile_data[vid_id]["relative_engagement"]])
-        G.add_node(edge_key_mapping[vid_id], node_feature=torch.tensor(lst, dtype=float))
+    # for vid_id in compile_data.keys():
+    #     lst = []
+    #     lst.append(compile_data[vid_id]["aver_daily_view"])
+    #     lst.append(compile_data[vid_id]["aver_daily_share"])
+    #     lst.append(compile_data[vid_id]["aver_watch_time"])
+    #     lst.extend(compile_data[vid_id]["neighbor_engagement"])
+    #     lst.extend([compile_data[vid_id]["aver_watch_percentage"], compile_data[vid_id]["relative_engagement"]])
+    #     G.add_node(edge_key_mapping[vid_id], node_feature=torch.tensor(lst, dtype=float))
 
     for vid_id in compile_data.keys():
-
+        G.add_node(edge_key_mapping[vid_id])
         source_says_neigh = compile_data[vid_id]["source_neighbors"]
         target_says_neigh = compile_data[vid_id]["target_neighbors"]
         for source in source_says_neigh:
@@ -195,19 +167,73 @@ def get_networkx():
 
     return G
 
+
 graph = get_networkx()
 centrality = nx.eigenvector_centrality_numpy(graph)
 
-for vid_id in compile_data:
-    central = []
-    for vid in compile_data[vid_id]["neighbors"]:
-        central.append(centrality[edge_key_mapping[vid]])
-    central = np.pad(central, (0, len(compile_data[vid_id]["neighbor_engagement"]) - len(central)), 'constant',
-                        constant_values=0)
-    central = central.tolist()
-    compile_data[vid_id]['centrality'] = central
+def get_top_indices(lst, n):
+    sorted_indices = sorted(range(len(lst)), key=lambda i: lst[i], reverse=True)
+    return sorted_indices[:n]
 
-        
+number_empty = 0
+num_neighbors = defaultdict(int)
+for vid_id in compile_data:
+    neighbors = compile_data[vid_id]["neighbors"]
+    if len(neighbors) == 0:
+        number_empty += 1
+    neighbor_engagement = [
+        engagement.query_engagement_map(compile_data[item]["duration"],
+                                        compile_data[item]["aver_watch_percentage"]) for item in neighbors
+    ]
+
+    neighbor_aver_daily_view = [compile_data[item]["aver_daily_view"] for item in neighbors]
+    neighbor_aver_daily_share = [compile_data[item]["aver_daily_share"] for item in neighbors]
+    neighbor_aver_watch_time = [compile_data[item]["aver_watch_time"] for item in neighbors]
+    neighbor_aver_watch_percentage = [compile_data[item]["aver_watch_percentage"] for item in neighbors]
+    neighbor_centrality = [centrality[edge_key_mapping[vid]] for vid in neighbors]
+
+    num_neighbors[len(neighbor_aver_daily_view)] += 1
+
+    neighbor_aver_daily_view = np.pad(neighbor_aver_daily_view, (0, max_neighbors - len(neighbor_aver_daily_view)), 'constant', constant_values=0)
+    neighbor_aver_daily_share = np.pad(neighbor_aver_daily_share, (0, max_neighbors - len(neighbor_aver_daily_share)), 'constant', constant_values=0)
+    neighbor_aver_watch_time = np.pad(neighbor_aver_watch_time, (0, max_neighbors - len(neighbor_aver_watch_time)), 'constant', constant_values=0)
+    neighbor_aver_watch_percentage = np.pad(neighbor_aver_watch_percentage, (0, max_neighbors - len(neighbor_aver_watch_percentage)), 'constant', constant_values=0)
+    neighbor_centrality = np.pad(neighbor_centrality, (0, max_neighbors - len(neighbor_centrality)), 'constant', constant_values=0)
+    neighbor_engagement = np.pad(neighbor_engagement, (0, max_neighbors - len(neighbor_engagement)), 'constant', constant_values=0)
+
+    indices = get_top_indices(neighbor_aver_daily_share, 5)
+
+    def process(lst):
+        lst = np.array([lst[i] for i in indices])
+        if np.sum(lst) > 0:
+            lst = lst / np.linalg.norm(lst)
+        lst = lst.tolist()
+
+        return lst
+
+    compile_data[vid_id]["neighbor_aver_daily_view"] = process(neighbor_aver_daily_view)
+    compile_data[vid_id]["neighbor_aver_daily_share"] = process(neighbor_aver_daily_share)
+    compile_data[vid_id]["neighbor_aver_watch_time"] = process(neighbor_aver_watch_time)
+    compile_data[vid_id]["neighbor_aver_watch_percentage"] = process(neighbor_aver_watch_percentage)
+    compile_data[vid_id]['neighbor_centrality'] = process(neighbor_centrality)
+    compile_data[vid_id]["neighbor_engagement"] = process(neighbor_engagement)
+
+sorted_lst = sorted(num_neighbors.keys())
+vals = []
+no_zeros = []
+for item in sorted_lst:
+    print(item, num_neighbors[item])
+    if int(item) > 1:
+        no_zeros.extend([item] * int(num_neighbors[item]))
+    vals.extend([item] * int(num_neighbors[item]))
+
+print("median with no zeros", statistics.median(no_zeros))
+print("median", statistics.median(vals))
+print("average", statistics.mean(vals))
+
+    
+print(f'Percentage of videos with neighbors: {number_empty/len(compile_data)}')
+
 with open("data/compile_data.json", "w", encoding="utf-8") as f:
     json.dump(compile_data, f)
 

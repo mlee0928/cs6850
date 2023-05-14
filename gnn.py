@@ -15,15 +15,15 @@ class GCN(torch.nn.Module):
         self.hidden_channel = hidden_channels
         self.out_channel = out_channels
         self.conv1 = GCNConv(in_channels, 32)
-        self.conv2 = GCNConv(32, hidden_channels)
-        self.conv3 = GCNConv(hidden_channels, out_channels)
+        self.conv2 = GCNConv(32, 16)
+        self.conv3 = GCNConv(16, out_channels)
 
     def forward(self, x, edge_index):
         x = self.conv1(x, edge_index)
         x = F.relu(x)
-        x = F.dropout(x, p=0.4)
         x = self.conv2(x, edge_index)
         x = F.relu(x)
+        x = F.dropout(x, p=0.4)
         x = self.conv3(x, edge_index)
         x = F.relu(x)
         return x
@@ -62,6 +62,7 @@ if torch.cuda:
 else:
     device = 'cpu'
 
+device = "cpu"
 print(f"device: {device}")
 
 with open('data/compile_data.json', 'r', encoding="utf-8") as f:
@@ -75,13 +76,14 @@ Inputs:  1. neighbor_aver_daily_view
          2. neighbor_aver_daily_share
          3. neighbor_aver_watch_percentage
          4. neighbor_engagement
-         5. network centrality
+         5. neighbor_centrality
 Outputs: 1. aver_watch_percentage
          2. relative_engagement
 """
 def get_graph():
+    # random node level split
     keys = list(edge_key_mapping)
-    split_percentages = [0.6, 0.2, 0.2]
+    split_percentages = [0.7, 0.15, 0.15]
     split_lengths = [int(len(keys) * p) for p in split_percentages]
     random.shuffle(keys)
 
@@ -115,9 +117,7 @@ def get_graph():
                     edge[0].append(edge_key_map[dest])
 
             all_keys = ["neighbor_aver_daily_view", "neighbor_aver_daily_share",
-                        "neighbor_aver_watch_percentage", "neighbor_engagement", "centrality"]
-            all_keys = ["neighbor_aver_daily_view", "neighbor_aver_daily_share",
-                        "neighbor_engagement", "neighbor_aver_watch_percentage"]
+                        "neighbor_aver_watch_percentage", "neighbor_engagement", "neighbor_centrality"]
             lst = []
             for k in all_keys:
                 lst.extend(compile_data[vid_id][k])
@@ -125,8 +125,6 @@ def get_graph():
             x.append(lst)
             y.append([compile_data[vid_id]["aver_watch_percentage"], compile_data[vid_id]["relative_engagement"]])
 
-        mag = np.linalg.norm(x)
-        x = x / mag
 
         x = torch.tensor(x, dtype=torch.float).to(device)
         y = torch.tensor(y, dtype=torch.float).to(device)
@@ -140,56 +138,150 @@ def get_graph():
 
     return x_train, x_test, x_val, y_train, y_test, y_val, edge_train, edge_test, edge_val
 
+loss_fn = abs_loss_fn
+lst_dict = {0: ["neighbor_aver_daily_view", "neighbor_aver_daily_share", "neighbor_aver_watch_percentage", "neighbor_engagement",
+                        "neighbor_centrality"],
+            1: ["neighbor_aver_daily_view", "neighbor_aver_daily_share",
+                        "neighbor_aver_watch_percentage",
+                        "neighbor_centrality"],
+            2: ["neighbor_aver_daily_view", "neighbor_aver_daily_share", "neighbor_engagement", "neighbor_centrality"],
+            3: ["neighbor_aver_daily_view", "neighbor_aver_daily_share", "neighbor_aver_watch_percentage", "neighbor_engagement"],
+            4: ["neighbor_aver_daily_share", "neighbor_aver_watch_percentage", "neighbor_engagement", "neighbor_centrality"],
+            5: ["neighbor_aver_daily_view", "neighbor_aver_watch_percentage", "neighbor_engagement", "neighbor_centrality"],
+            6: ["neighbor_engagement"],
+            7: ["neighbor_aver_watch_percentage"],
+            8: ["neighbor_centrality"],
+            9: ["neighbor_aver_daily_view"],
+            10: ["neighbor_aver_daily_share"]
+            }
+epochs = 150
 
-x_train, x_test, x_val, y_train, y_test, y_val, edge_train, edge_test, edge_val = get_graph()
+for num in range(13, 15):
+    def get_graph1():
+        # random edge level link split
+        all_edge = []
 
-model = GCN(in_channels=x_train.shape[1], hidden_channels=16, out_channels=2).to(device)
-optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
+        for vid_id in compile_data:
+            source_says_neigh = compile_data[vid_id]["source_neighbors"]
+            target_says_neigh = compile_data[vid_id]["target_neighbors"]
+            for source in source_says_neigh:
+                if source in edge_key_mapping:
+                    pair = (edge_key_mapping[source], edge_key_mapping[vid_id])
+                    all_edge.append(pair)
+            for dest in target_says_neigh:
+                if dest in edge_key_mapping:
+                    pair = (edge_key_mapping[vid_id], edge_key_mapping[dest])
+                    all_edge.append(pair)
 
-model.train()
-train_loss = []
-val_loss = []
+        split_percentages = [0.7, 0.15, 0.15]
+        split_lengths = [int(len(all_edge) * p) for p in split_percentages]
+        random.shuffle(all_edge)
 
-loss_fn = sq_loss_fn
+        train_edge = all_edge[:split_lengths[0]]
+        val_edge = all_edge[split_lengths[0]:split_lengths[0] + split_lengths[1]]
+        test_edge = all_edge[split_lengths[0] + split_lengths[1]:]
 
-for epoch in range(100):
-    optimizer.zero_grad()
-    out = model(x_train, edge_train)
-    loss = loss_fn(out, y_train)
-    train_loss.append(loss.cpu().data.numpy())
-    loss.backward()
-    optimizer.step()
+        def get_edges(edges):
+            output = [[], []]
+            for s, v in edges:
+                output[0].append(s)
+                output[1].append(v)
+            return output
 
-    model.eval()
-    with torch.no_grad():
-        out = model(x_val, edge_val)
-        loss = loss_fn(y_val, out)
-        val_loss.append(loss.item())
-        print('Epoch: {:03d}, Val Loss: {:.4f}'.format(epoch, loss.item()))
+        edge_train = get_edges(train_edge)
+        edge_val = get_edges(val_edge)
+        edge_test = get_edges(test_edge)
 
-        pred_test = model(x_test, edge_test)
-        sm = smape(pred_test.cpu().detach().numpy(), y_test.cpu().detach().numpy())
+        x = []
+        y = []
 
-    print(f"SMAPE: {sm}, MSE: {loss}")
+        for vid_id in compile_data:
+            all_keys = ["neighbor_aver_daily_view", "neighbor_aver_daily_share",
+                        "neighbor_aver_watch_percentage", "neighbor_engagement",
+                        "neighbor_centrality"]
+            all_keys = lst_dict[num - 11]
+
+            lst = []
+            for k in all_keys:
+                lst.extend(compile_data[vid_id][k])
+
+            x.append(lst)
+            y.append([compile_data[vid_id]["aver_watch_percentage"], compile_data[vid_id]["relative_engagement"]])
 
 
-plt.plot(train_loss, color='red', label="train loss")
-plt.plot(val_loss, color='blue', label="val loss")
-plt.xlabel('Epoch')
-plt.ylabel('Loss')
-plt.legend()
-plt.title('Loss')
-num = 3
-plt.savefig(f"gnn_loss_plt_{num}.png")
+        x = torch.tensor(x, dtype=torch.float).to(device)
+        y = torch.tensor(y, dtype=torch.float).to(device)
+        edge_train = torch.tensor(edge_train, dtype=torch.long).to(device)
+        edge_val = torch.tensor(edge_val, dtype=torch.long).to(device)
+        edge_test = torch.tensor(edge_test, dtype=torch.long).to(device)
 
-np.savetxt(f"gnn_loss_vals_{num}", np.array([train_loss, val_loss]))
+        x_train = x
+        x_val = x
+        y_train = y
+        y_val = y
+        x_test = x
+        y_test = y
 
-pred_test = model(x_test, edge_test)
-if device == 'cuda':
-    pred_test = pred_test.cpu()
-    y_test = y_test.cpu()
+        return x_train, x_test, x_val, y_train, y_test, y_val, edge_train, edge_test, edge_val
 
-loss = loss_fn(pred_test, y_test)
-sm = smape(pred_test.cpu().detach().numpy(), y_test.cpu().detach().numpy())
 
-print(f"SMAPE: {sm}, MSE: {loss}")
+    x_train, x_test, x_val, y_train, y_test, y_val, edge_train, edge_test, edge_val = get_graph1()
+
+    model = GCN(in_channels=x_train.shape[1], hidden_channels=16, out_channels=2).to(device)
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
+
+    model.train()
+    train_loss = []
+    val_loss = []
+
+
+    for epoch in range(epochs):
+        optimizer.zero_grad()
+        out = model(x_train, edge_train)
+        loss = loss_fn(out, y_train)
+        train_loss.append(loss.cpu().data.numpy())
+        loss.backward()
+        optimizer.step()
+
+        model.eval()
+        with torch.no_grad():
+            out = model(x_val, edge_val)
+            loss = loss_fn(y_val, out)
+            val_loss.append(loss.item())
+            if loss_fn == abs_loss_fn:
+                print(f"Plot Number: {num}\nLoss function: Absolute Error")
+            else:
+                print(f"Plot Number: {num}\nLoss function: Mean Squared Error")
+            print('Epoch: {:03d}, Train Loss: {:.4f}, Val Loss: {:.4f}'.format(epoch, train_loss[-1], loss.item()))
+
+        #     pred_test = model(x_test, edge_test)
+        #     sm = smape(pred_test.cpu().detach().numpy(), y_test.cpu().detach().numpy())
+        #     mse = sq_loss_fn(pred_test, y_test)
+        #     me = abs_loss_fn(pred_test, y_test)
+        #
+        # print(f"SMAPE: {sm}, MSE: {mse}, ME: {me}")
+
+
+    plt.plot(train_loss, color='red', label="train loss")
+    plt.plot(val_loss, color='blue', label="val loss")
+    plt.xlabel('Epoch')
+    plt.ylabel('Loss')
+    plt.legend()
+    plt.title('Loss')
+    plt.savefig(f"plots/gnn_loss_plt_{num}.png")
+
+    np.savetxt(f"plots/gnn_loss_vals_{num}", np.array([train_loss, val_loss]))
+
+    pred_test = model(x_test, edge_test)
+    if device == 'cuda':
+        pred_test = pred_test.cpu()
+        y_test = y_test.cpu()
+
+    mse = sq_loss_fn(pred_test, y_test)
+    me = abs_loss_fn(pred_test, y_test)
+    sm = smape(pred_test.cpu().detach().numpy(), y_test.cpu().detach().numpy())
+
+    print(f"SMAPE: {sm}, MSE: {mse}, ME: {me}")
+
+    with open(f"plots/results_{num}.txt", "w") as f:
+        f.write(f"SMAPE: {sm}, MSE: {mse}, ME: {me}")

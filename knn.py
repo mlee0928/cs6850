@@ -24,7 +24,7 @@ def knn():
         x.extend(data[vid]['neighbor_aver_daily_share'])
         x.extend(data[vid]['neighbor_aver_watch_percentage'])
         x += data[vid]['neighbor_engagement']
-        x += data[vid]['centrality']
+        x += data[vid]['neighbor_centrality']
         X += [x]
         y = []
         y += [data[vid]['aver_watch_percentage']]
@@ -43,6 +43,7 @@ def knn():
     test_point += [data['--5u48IaR4M']['neighbor_aver_daily_share']]
     test_point += [data['--5u48IaR4M']['neighbor_aver_watch_percentage']]
     test_point += data['--5u48IaR4M']['neighbor_engagement']
+    test_point += data['--5u48IaR4M']['neighbor_centrality']
 
     test_gt = [data['--5u48IaR4M']["aver_watch_percentage"], data['--5u48IaR4M']['relative_engagement']]
 
@@ -53,8 +54,8 @@ def knn():
     count = len(y_test)
     losses = 0
     for i in range(count):
-        losses += ((y_test[i][0] - pred[i][0])) ** 2
-        losses += ((y_test[i][1] - pred[i][1])) ** 2
+        losses += abs((y_test[i][0] - pred[i][0])) #** 2
+        losses += abs((y_test[i][1] - pred[i][1])) #** 2
     losses /= count
 
     def smape(y_pred, y_test):
