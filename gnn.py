@@ -57,10 +57,10 @@ def smape(y_pred, y_test):
         acc += abs((a + b) / ((c + d) / 2))
     return acc / n
 
-if torch.cuda:
-    device = 'cuda'
-else:
-    device = 'cpu'
+# if torch.cuda:
+#     device = 'cuda'
+# else:
+device = 'cpu'
 
 device = "cpu"
 print(f"device: {device}")
@@ -156,7 +156,7 @@ lst_dict = {0: ["neighbor_aver_daily_view", "neighbor_aver_daily_share", "neighb
             }
 epochs = 150
 
-for num in range(16, 17):
+for num in range(14, 15):
     def get_graph1():
         # random edge level link split
         all_edge = []
@@ -273,9 +273,9 @@ for num in range(16, 17):
     np.savetxt(f"plots/gnn_loss_vals_{num}", np.array([train_loss, val_loss]))
 
     pred_test = model(x_test, edge_test)
-    if device == 'cuda':
-        pred_test = pred_test.cpu()
-        y_test = y_test.cpu()
+    # if device == 'cuda':
+    #     pred_test = pred_test.cpu()
+    #     y_test = y_test.cpu()
 
     mse = sq_loss_fn(pred_test, y_test)
     me = abs_loss_fn(pred_test, y_test)
