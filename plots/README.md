@@ -21,3 +21,10 @@ gnn_loss_plt_18 --> gnn with ONLY neighbor watch percentage, MAE loss function, 
 gnn_loss_plt_19 --> gnn with ONLY neighbor centrality, MAE loss function, Adam optimizer, 150 epochs, lr 0.01
 gnn_loss_plt_20 --> gnn with ONLY neighbor daily view, MAE loss function, Adam optimizer, 150 epochs, lr 0.01
 gnn_loss_plt_21 --> gnn with ONLY neighbor daily share, MAE loss function, Adam optimizer, 150 epochs, lr 0.01
+
+gnn_loss_plt_22 --> gnn with ALL variables, MAE loss function, Adam optimizer, 150 epochs, lr 0.01
+gnn_loss_plt_23 --> gnn WITHOUT neighbor engagement, MAE loss function, Adam optimizer, 150 epochs, lr 0.01
+gnn_loss_plt_24 --> gnn WITHOUT neighbor watch percentage, MAE loss function, Adam optimizer, 150 epochs, lr 0.01
+gnn_loss_plt_25 --> gnn WITHOUT neighbor centrality, MAE loss function, Adam optimizer, 150 epochs, lr 0.01
+gnn_loss_plt_26 --> gnn WITHOUT neighbor daily view, MAE loss function, Adam optimizer, 150 epochs, lr 0.01
+gnn_loss_plt_27 --> gnn WITHOUT neighbor daily share, MAE loss function, Adam optimizer, 150 epochs, lr 0.01

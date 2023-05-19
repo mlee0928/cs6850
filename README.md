@@ -36,30 +36,37 @@ Units:
 
 Compile Data is the full set of data we have after preprocessing
 ```
-{"vid_id": 
-    {"eid": 1, 
-    "neighbors": ["d7cVLE4SaN0", "eCGV26aj-mM", "EnIR91t4qgY", "RAC5Rv4cOhE"], 
-    "source_neighbors": ["d7cVLE4SaN0", "eCGV26aj-mM"],
-    "target_neighbors": ["EnIR91t4qgY", "RAC5Rv4cOhE"],
-    "aver_daily_share": 332.3450508788159, 
-    "duration": 242.0, 
-    "total_view": 80160391, 
-    "total_watch_time": 3131.3522672762774, 
-    "aver_watch_time": 2.896718101088138, 
-    "aver_watch_percentage": 1.1969909508628669, 
-    "relative_engagement": 1, 
-    "aver_daily_view": 74153.92321924145,
-    # this is in the order of "neighbors"
-    "neighbor_engagement": [1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 
-                            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
-                            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
-                            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
-                            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
-                            0, 0, 0, 0, 0, 0] 
+{"vid_id1": 
+    {
+        "eid": 1, 
+        "neighbors": ["EnIR91t4qgY", "RAC5Rv4cOhE", "d7cVLE4SaN0", "eCGV26aj-mM"], 
+        "aver_daily_share": 332.3450508788159, 
+        "duration": 242.0, 
+        "total_view": 80160391, 
+        "total_watch_time": 3131.3522672762774, 
+        "aver_watch_time": 2.896718101088138, 
+        "aver_watch_percentage": 1.1969909508628669, 
+        "relative_engagement": 1, 
+        "aver_daily_view": 74153.92321924145, 
+        "source_neighbors": ["EnIR91t4qgY", "RAC5Rv4cOhE"], 
+        "target_neighbors": ["d7cVLE4SaN0", "eCGV26aj-mM"], 
+        "neighbor_aver_daily_view": [0.91986952, 0.33629022, 0.2016786, 0.0086403, 0.0], 
+        "neighbor_aver_daily_share": [0.8843747, 0.364756, 0.2909698, 0.0133260, 0.0], 
+        "neighbor_aver_watch_time": [0.50005693, 0.491883306, 0.551358489, 0.45179, 0.0], 
+        "neighbor_aver_watch_percentage": [0.5187526, 0.47441278, 0.5215076, 0.483884738, 0.0], 
+        "neighbor_centrality": [-2.343023e-18, -1.844017e-18, 6.27541e-19, -6.354093e-19, 0.0], 
+        "neighbor_engagement": [0.5, 0.5, 0.5, 0.5, 0.0]
     }, 
  "vid_id2":
     {
+        ...
     }
 }
-
 ```
+
+`network.py` - parses the `vevo_en_videos_60k.json` to get relevant nodes and edges
+`compile_data.py` - further calculates and compiles the full dataset we need for our models
+`api_parser.py` - Youtube API parser to get video neighbors
+`knn.py`, `gnn.py`, `linearReg.py` - our models
+`utils.py` - functions for test loss calculation
+`examine_graphs.py` - a helper file for us to look at loss plots in more detail
